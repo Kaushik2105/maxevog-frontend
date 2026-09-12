@@ -19,17 +19,18 @@ export const ProfilePage = () => {
   const { user, refreshUser } = useAuth();
 
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
-    phone: '',
-    gender: 'Male',
-    dateOfBirth: '',
-    category: 'General',
-    highestQualification: 'Graduate',
-    qualificationDetails: '',
+    mobileNumber: '',
+    gender: 'MALE',
+    dob: '',
+    category: 'GENERAL',
+    state: '',
+    district: '',
+    educationLevel: 'Graduate',
+    degree: '',
     passingYear: '',
     percentage: '',
-    state: 'All India',
   });
 
   const [saving, setSaving] = useState(false);
@@ -39,40 +40,63 @@ export const ProfilePage = () => {
 
   useEffect(() => {
     if (user) {
+      const p = user.profile || {};
       setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        gender: user.gender || 'Male',
-        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
-        category: user.category || 'General',
-        highestQualification: user.highestQualification || 'Graduate',
-        qualificationDetails: user.qualificationDetails || '',
-        passingYear: user.passingYear || '',
-        percentage: user.percentage || '',
-        state: user.state || 'All India',
+        fullName: p.fullName || user.name || '',
+        email: user.email || p.email || '',
+        mobileNumber: p.mobileNumber || user.phone || '',
+        gender: p.gender || 'MALE',
+        dob: p.dob ? String(p.dob).split('T')[0] : '',
+        category: p.category || 'GENERAL',
+        state: p.state || '',
+        district: p.district || '',
+        educationLevel: p.educationLevel || 'Graduate',
+        degree: p.degree || '',
+        passingYear: p.passingYear ? String(p.passingYear) : '',
+        percentage: p.percentage || '',
       });
     }
   }, [user]);
 
-  // Calculate profile completion score
+  // Calculate profile completion score based on 10 canonical profile fields
   const calculateCompletion = () => {
-    const fields = ['name', 'email', 'phone', 'dateOfBirth', 'category', 'highestQualification', 'passingYear', 'percentage'];
-    const filled = fields.filter((f) => !!formData[f]);
+    const fields = [
+      formData.fullName,
+      formData.dob,
+      formData.gender,
+      formData.mobileNumber,
+      formData.state,
+      formData.district,
+      formData.category,
+      formData.educationLevel,
+      formData.degree,
+      formData.passingYear,
+    ];
+    const filled = fields.filter((f) => f !== null && f !== undefined && String(f).trim() !== '');
     return Math.round((filled.length / fields.length) * 100);
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (saving) return;
     setSaving(true);
     setSuccessMsg('');
     setErrorMsg('');
 
     try {
-      const res = await authApi.updateProfile(formData);
+      const payload = {
+        ...formData,
+        // Aliases for compatibility
+        name: formData.fullName,
+        phone: formData.mobileNumber,
+        dateOfBirth: formData.dob,
+        highestQualification: formData.educationLevel,
+        qualificationDetails: formData.degree,
+      };
+      const res = await authApi.updateProfile(payload);
       if (res.data?.success) {
         setSuccessMsg('Profile information successfully saved & synchronized!');
-        refreshUser();
+        await refreshUser();
       } else {
         setErrorMsg(res.data?.message || 'Update failed');
       }
@@ -197,8 +221,8 @@ export const ProfilePage = () => {
                 <input
                   type="text"
                   className="form-control"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
                 />
               </div>
@@ -220,8 +244,8 @@ export const ProfilePage = () => {
                 <input
                   type="tel"
                   className="form-control"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.mobileNumber}
+                  onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
                   placeholder="10-digit phone number"
                 />
               </div>
@@ -231,8 +255,8 @@ export const ProfilePage = () => {
                 <input
                   type="date"
                   className="form-control"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  value={formData.dob}
+                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
                   required
                 />
               </div>
@@ -244,9 +268,9 @@ export const ProfilePage = () => {
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                 >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Transgender">Transgender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
                 </select>
               </div>
 
@@ -257,13 +281,34 @@ export const ProfilePage = () => {
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 >
-                  <option value="General">General / Unreserved (UR)</option>
+                  <option value="GENERAL">General / Unreserved (UR)</option>
                   <option value="EWS">Economically Weaker Section (EWS)</option>
                   <option value="OBC">Other Backward Classes (OBC-NCL)</option>
                   <option value="SC">Scheduled Caste (SC)</option>
                   <option value="ST">Scheduled Tribe (ST)</option>
-                  <option value="PwD">Persons with Benchmark Disability (PwD)</option>
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">State / UT of Domicile</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. West Bengal, Maharashtra, Delhi"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">District / City</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Kolkata, Pune, Central Delhi"
+                  value={formData.district}
+                  onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                />
               </div>
             </div>
           </div>
@@ -279,8 +324,8 @@ export const ProfilePage = () => {
                 <label className="form-label">Highest Completed Qualification</label>
                 <select
                   className="form-control form-select"
-                  value={formData.highestQualification}
-                  onChange={(e) => setFormData({ ...formData, highestQualification: e.target.value })}
+                  value={formData.educationLevel}
+                  onChange={(e) => setFormData({ ...formData, educationLevel: e.target.value })}
                 >
                   <option value="10th">10th / Matriculation</option>
                   <option value="12th">12th / Intermediate / Higher Secondary</option>
@@ -297,8 +342,8 @@ export const ProfilePage = () => {
                   type="text"
                   className="form-control"
                   placeholder="e.g. B.Tech Computer Science, B.Sc Mathematics"
-                  value={formData.qualificationDetails}
-                  onChange={(e) => setFormData({ ...formData, qualificationDetails: e.target.value })}
+                  value={formData.degree}
+                  onChange={(e) => setFormData({ ...formData, degree: e.target.value })}
                 />
               </div>
 

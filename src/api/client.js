@@ -22,16 +22,16 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Extract error messages & handle 401
+// Response Interceptor: Extract error messages & handle 401 / 403
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear token if invalid/expired session
+    if (error.response?.status === 401 || error.response?.status === 403) {
       const currentPath = window.location.pathname;
-      if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+      if (!currentPath.includes('/login') && !currentPath.includes('/register') && currentPath !== '/') {
         localStorage.removeItem('maxevog_token');
         localStorage.removeItem('maxevog_user');
+        window.location.href = '/';
       }
     }
     return Promise.reject(error);

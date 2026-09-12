@@ -96,7 +96,7 @@ export const AgentDashboardPage = () => {
   };
 
   const handleSaveNotes = async () => {
-    if (!activeSession) return;
+    if (!activeSession || savingNotes) return;
     setSavingNotes(true);
     try {
       await agentApi.updateSession(activeSession.id, { notes: agentNotes });
@@ -135,6 +135,7 @@ export const AgentDashboardPage = () => {
 
   const handleUploadReceipt = async (e) => {
     e.preventDefault();
+    if (uploadingReceipt) return;
     if (!activeSession?.applicationId && !activeSession?.id) return;
     const targetId = activeSession.applicationId || activeSession.id;
 

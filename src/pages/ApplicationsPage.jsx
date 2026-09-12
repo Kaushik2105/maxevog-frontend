@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { applicationsApi } from '../api/applications.api';
 import { 
   FileText, 
@@ -14,11 +15,14 @@ import {
 } from 'lucide-react';
 
 export const ApplicationsPage = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [bannerMessage, setBannerMessage] = useState(location.state?.message || '');
+
+  const completionPercentage = user?.profile?.profileCompletionPercentage ?? 0;
 
   useEffect(() => {
     fetchApplications();
@@ -97,6 +101,64 @@ export const ApplicationsPage = () => {
             </button>
           </div>
         )}
+
+        {/* Profile Completeness Dashboard Banner */}
+        <div className="card" style={{
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2rem',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid var(--color-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.85rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '50%',
+                backgroundColor: completionPercentage === 100 ? '#ecfdf5' : '#eff6ff',
+                color: completionPercentage === 100 ? '#059669' : '#2563eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '0.9rem'
+              }}>
+                {completionPercentage}%
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text-title)' }}>
+                  Your profile is {completionPercentage}% complete
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                  {completionPercentage === 100
+                    ? 'Your educational & category credentials are fully synchronized for instant recruitment matching.'
+                    : 'Complete your phone number, educational details, and reservation category to unlock automated form eligibility.'}
+                </div>
+              </div>
+            </div>
+
+            {completionPercentage < 100 && (
+              <Link to="/profile" className="btn btn-outline btn-sm">
+                <span>Complete Profile</span>
+                <ArrowRight size={14} />
+              </Link>
+            )}
+          </div>
+
+          <div style={{ height: '6px', backgroundColor: 'var(--color-bg)', borderRadius: '999px', overflow: 'hidden' }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${completionPercentage}%`,
+                backgroundColor: completionPercentage === 100 ? 'var(--color-accent)' : 'var(--color-primary)',
+                transition: 'width 0.4s ease'
+              }}
+            />
+          </div>
+        </div>
 
         {/* Header */}
         <div style={{

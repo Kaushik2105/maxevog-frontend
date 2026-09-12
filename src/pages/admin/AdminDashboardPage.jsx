@@ -39,6 +39,7 @@ export const AdminDashboardPage = () => {
   const [assistanceSessions, setAssistanceSessions] = useState([]);
   const [financials, setFinancials] = useState(null);
   const [feedbacks, setFeedbacks] = useState([]);
+  const [agentsList, setAgentsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Search & Filter State
@@ -46,6 +47,14 @@ export const AdminDashboardPage = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   // Modals
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [newAgent, setNewAgent] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    phone: '',
+  });
+  const [agentSubmitting, setAgentSubmitting] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
   const [newJob, setNewJob] = useState({
     title: '',
@@ -136,6 +145,11 @@ export const AdminDashboardPage = () => {
         const res = await adminApi.getAllFeedbacks({ limit: 100 });
         if (res.data?.success) {
           setFeedbacks(res.data.data.feedbacks || []);
+        }
+      } else if (activeTab === 'agents') {
+        const res = await adminApi.getAgents();
+        if (res.data?.success) {
+          setAgentsList(res.data.data.agents || []);
         }
       }
     } catch (err) {
@@ -247,6 +261,25 @@ export const AdminDashboardPage = () => {
     }
   };
 
+  const handleCreateAgent = async (e) => {
+    e.preventDefault();
+    if (agentSubmitting) return;
+    setAgentSubmitting(true);
+    try {
+      const res = await adminApi.createAgent(newAgent);
+      if (res.data?.success) {
+        setNotification(`Desk Agent "${newAgent.fullName}" created successfully!`);
+        setShowAgentModal(false);
+        setNewAgent({ fullName: '', email: '', password: '', phone: '' });
+        loadTabData();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to create Desk Agent account');
+    } finally {
+      setAgentSubmitting(false);
+    }
+  };
+
   return (
     <div style={{ padding: '2.5rem 0 4rem' }}>
       <div className="container">
@@ -277,6 +310,13 @@ export const AdminDashboardPage = () => {
               className="btn btn-primary btn-sm"
             >
               <Plus size={15} /> Publish Recruitment
+            </button>
+            <button
+              onClick={() => setShowAgentModal(true)}
+              className="btn btn-primary btn-sm"
+              style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+            >
+              <UserCheck size={15} /> Add Desk Agent
             </button>
             <button
               onClick={() => setShowResultModal(true)}
@@ -331,6 +371,7 @@ export const AdminDashboardPage = () => {
             { key: 'applications', label: 'Master Applications', icon: Layers },
             { key: 'recruitments', label: 'Recruitments (CRUD)', icon: Briefcase },
             { key: 'assistance', label: 'Assistance Dispatch', icon: Video },
+            { key: 'agents', label: 'Desk Agents', icon: UserCheck },
             { key: 'users', label: 'Candidate Accounts', icon: Users },
             { key: 'financials', label: 'Financials & Revenue', icon: IndianRupee },
             { key: 'feedback', label: 'Grievance Desk', icon: MessageSquare },
@@ -725,6 +766,84 @@ export const AdminDashboardPage = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* TAB 5.5: DESK AGENTS GOVERNANCE */}
+        {activeTab === 'agents' && (
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', margin: 0 }}>
+                  Desk Agent Officers Directory
+                </h3>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                  Only master administrators can create desk agents who assist candidates with government form submissions.
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowAgentModal(true)}
+                className="btn btn-primary btn-sm"
+              >
+                <Plus size={15} /> Create New Desk Agent
+              </button>
+            </div>
+
+            {agentsList.length === 0 ? (
+              <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
+                No desk agents registered in platform yet. Click "+ Create New Desk Agent" to register an agent.
+              </p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Officer Name</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Official Email</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Mobile Number</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Active Sessions</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Completed Sessions</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Account Status</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Created Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agentsList.map((ag) => (
+                      <tr key={ag.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--color-text-title)' }}>
+                          {ag.profile?.fullName || ag.email}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-primary)' }}>
+                          {ag.email}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>
+                          {ag.profile?.mobileNumber || '—'}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <span className="badge badge-primary">
+                            {ag.activeSessions || 0} active
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <span className="badge badge-official">
+                            {ag.completedSessions || 0} finished
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <span className={`badge ${ag.status === 'suspended' ? 'badge-danger' : 'badge-official'}`}>
+                            {ag.status || 'ACTIVE'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>
+                          {new Date(ag.createdAt).toLocaleDateString('en-IN')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -1184,6 +1303,86 @@ export const AdminDashboardPage = () => {
               </button>
             </div>
           </div>
+        </Modal>
+
+        {/* MODAL: CREATE DESK AGENT (Admin Only) */}
+        <Modal
+          isOpen={showAgentModal}
+          onClose={() => setShowAgentModal(false)}
+          title="Create Official Desk Agent Account"
+        >
+          <form onSubmit={handleCreateAgent}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1.25rem' }}>
+              Only master administrators can create desk agents. Agents receive credentials to log in and manage candidate assistance sessions.
+            </p>
+
+            <div className="form-group">
+              <label className="form-label">Desk Agent Full Name</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Desk Officer Ramesh Verma"
+                value={newAgent.fullName}
+                onChange={(e) => setNewAgent({ ...newAgent, fullName: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Official Portal / Agency Email</label>
+              <input
+                type="email"
+                className="form-control"
+                placeholder="officer.verma@recruitment.gov.in"
+                value={newAgent.email}
+                onChange={(e) => setNewAgent({ ...newAgent, email: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Temporary Account Password</label>
+              <input
+                type="password"
+                className="form-control"
+                placeholder="At least 6 characters"
+                value={newAgent.password}
+                onChange={(e) => setNewAgent({ ...newAgent, password: e.target.value })}
+                required
+                minLength={6}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Desk Contact Mobile Number (Optional)</label>
+              <input
+                type="tel"
+                className="form-control"
+                placeholder="10-digit mobile number"
+                value={newAgent.phone}
+                onChange={(e) => setNewAgent({ ...newAgent, phone: e.target.value })}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowAgentModal(false)}
+                className="btn btn-outline"
+                disabled={agentSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={agentSubmitting}
+              >
+                <UserCheck size={16} />
+                <span>{agentSubmitting ? 'Creating Agent...' : 'Create Desk Agent'}</span>
+              </button>
+            </div>
+          </form>
         </Modal>
       </div>
 

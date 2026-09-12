@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { ShieldCheck, Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 
 export const LoginPage = () => {
@@ -17,6 +18,7 @@ export const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError('');
 
@@ -28,11 +30,6 @@ export const LoginPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoFill = (demoEmail, demoPass) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
   };
 
   return (
@@ -82,6 +79,25 @@ export const LoginPage = () => {
         )}
 
         <div className="card" style={{ padding: '2rem', backgroundColor: '#FFFFFF' }}>
+          {/* Google OAuth 2.0 Sign In */}
+          <GoogleAuthButton
+            text="Sign in with Google"
+            onSuccess={() => navigate(from, { replace: true })}
+          />
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            margin: '1.25rem 0',
+            color: 'var(--color-text-muted)',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+          }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-border)' }} />
+            <span style={{ padding: '0 0.75rem', textTransform: 'uppercase' }}>Or sign in with email</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--color-border)' }} />
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Email Address</label>
@@ -125,44 +141,6 @@ export const LoginPage = () => {
               <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
             </button>
           </form>
-
-          {/* Quick Demo Credentials */}
-          <div style={{
-            marginTop: '1.5rem',
-            paddingTop: '1.25rem',
-            borderTop: '1px solid var(--color-border)',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginBottom: '0.6rem', fontWeight: 600 }}>
-              Quick Evaluation Autofill:
-            </div>
-            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => handleDemoFill('student@example.com', 'Student@12345')}
-                className="btn btn-outline btn-sm"
-                style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
-              >
-                Aspirant Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoFill('agent1@recruitment.gov.in', 'Agent@12345')}
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
-              >
-                Desk Agent Demo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoFill('karmakark1267@gmail.com', 'Maxevog@2026')}
-                className="btn btn-outline btn-sm"
-                style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
-              >
-                Admin Demo
-              </button>
-            </div>
-          </div>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>

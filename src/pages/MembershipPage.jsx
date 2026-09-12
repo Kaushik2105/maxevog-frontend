@@ -40,7 +40,7 @@ export const MembershipPage = () => {
 
   const handleSubscribe = async () => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/membership' } });
+      navigate('/', { replace: true });
       return;
     }
 

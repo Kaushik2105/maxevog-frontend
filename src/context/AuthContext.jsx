@@ -62,6 +62,42 @@ export const AuthProvider = ({ children }) => {
     throw new Error(res.data?.message || 'Registration failed');
   };
 
+  const sendRegistrationOtp = async ({ email, fullName, name }) => {
+    const candidateName = (fullName || name || '').trim();
+    const res = await authApi.sendOtp({ email, fullName: candidateName, name: candidateName });
+    if (res.data?.success) {
+      return res.data;
+    }
+    throw new Error(res.data?.message || 'Failed to dispatch verification code');
+  };
+
+  const registerWithOtp = async ({ email, password, fullName, name, otp }) => {
+    const candidateName = (fullName || name || '').trim();
+    const res = await authApi.verifyOtpRegister({ email, password, fullName: candidateName, name: candidateName, otp });
+    if (res.data?.success) {
+      const { token: receivedToken, user: receivedUser } = res.data.data;
+      setToken(receivedToken);
+      setUser(receivedUser);
+      localStorage.setItem('maxevog_token', receivedToken);
+      localStorage.setItem('maxevog_user', JSON.stringify(receivedUser));
+      return receivedUser;
+    }
+    throw new Error(res.data?.message || 'Verification failed');
+  };
+
+  const loginWithGoogle = async (googleData) => {
+    const res = await authApi.googleAuth(googleData);
+    if (res.data?.success) {
+      const { token: receivedToken, user: receivedUser } = res.data.data;
+      setToken(receivedToken);
+      setUser(receivedUser);
+      localStorage.setItem('maxevog_token', receivedToken);
+      localStorage.setItem('maxevog_user', JSON.stringify(receivedUser));
+      return receivedUser;
+    }
+    throw new Error(res.data?.message || 'Google authentication failed');
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -93,6 +129,9 @@ export const AuthProvider = ({ children }) => {
     isPro: user?.isProMember || false,
     login,
     register,
+    sendRegistrationOtp,
+    registerWithOtp,
+    loginWithGoogle,
     logout,
     refreshUser,
   };

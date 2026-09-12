@@ -34,6 +34,7 @@ export const adminApi = {
 
   // Desk Agents & Workload
   getAgents: () => apiClient.get('/admin/agents'),
+  createAgent: (data) => apiClient.post('/admin/agents', data),
 
   // Audit Logs
   getAuditLogs: (params) => apiClient.get('/admin/audit-logs', { params }),

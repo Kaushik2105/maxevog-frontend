@@ -33,7 +33,7 @@ export const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = 
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (requireAdmin && !isAdmin) {

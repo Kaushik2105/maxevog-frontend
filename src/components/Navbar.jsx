@@ -244,8 +244,8 @@ export const Navbar = () => {
                 }}
               >
                 <div style={{
-                  width: '1.9rem',
-                  height: '1.9rem',
+                  width: '2rem',
+                  height: '2rem',
                   borderRadius: 'var(--radius-full)',
                   backgroundColor: 'var(--color-primary-subtle)',
                   color: 'var(--color-primary)',
@@ -253,17 +253,33 @@ export const Navbar = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.8rem',
-                  fontWeight: 700
+                  fontWeight: 700,
+                  overflow: 'hidden'
                 }}>
-                  {user?.name ? user.name.charAt(0).toUpperCase() : <User size={14} />}
+                  {user?.profile?.avatarUrl ? (
+                    <img
+                      src={user.profile.avatarUrl}
+                      alt="Avatar"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (user?.profile?.fullName || user?.name) ? (
+                    (user?.profile?.fullName || user?.name).charAt(0).toUpperCase()
+                  ) : (
+                    <User size={14} />
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-title)', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {user?.name?.split(' ')[0] || 'Candidate'}
+                    {user?.profile?.fullName?.split(' ')[0] || user?.name?.split(' ')[0] || 'Candidate'}
                   </span>
-                  {isPro && (
+                  {isPro ? (
                     <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-secondary)' }}>
                       PRO MEMBER
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--color-accent)' }}>
+                      {user?.profile?.profileCompletionPercentage ?? 0}% Complete
                     </span>
                   )}
                 </div>

@@ -54,6 +54,7 @@ export const JobDetailPage = () => {
   };
 
   const checkCandidateEligibility = async (jobId) => {
+    if (checkingEligibility) return;
     setCheckingEligibility(true);
     try {
       const res = await jobsApi.checkEligibility(jobId);
@@ -398,10 +399,11 @@ export const JobDetailPage = () => {
                       </p>
                       <button
                         onClick={() => checkCandidateEligibility(job.id)}
+                        disabled={checkingEligibility}
                         className="btn btn-outline btn-sm"
                         style={{ width: '100%' }}
                       >
-                        Check My Eligibility
+                        {checkingEligibility ? 'Evaluating Eligibility...' : 'Check My Eligibility'}
                       </button>
                     </div>
                   )}

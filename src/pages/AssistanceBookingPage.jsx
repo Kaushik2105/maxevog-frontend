@@ -128,8 +128,9 @@ export const AssistanceBookingPage = () => {
 
   const handleBooking = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/assistance/book' } });
+      navigate('/', { replace: true });
       return;
     }
 
