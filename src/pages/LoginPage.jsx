@@ -1,0 +1,190 @@
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { ShieldCheck, Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
+
+export const LoginPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const from = location.state?.from?.pathname || '/';
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      await login(email, password);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoFill = (demoEmail, demoPass) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+  };
+
+  return (
+    <div style={{ padding: '3.5rem 0 5rem' }}>
+      <div className="container" style={{ maxWidth: '460px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: '3rem',
+            height: '3rem',
+            backgroundColor: 'var(--color-primary)',
+            color: '#FFFFFF',
+            fontWeight: 800,
+            fontSize: '1.4rem',
+            borderRadius: 'var(--radius-md)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            boxShadow: 'var(--shadow-md)'
+          }}>
+            mE
+          </div>
+          <h1 style={{ fontSize: '1.75rem', color: 'var(--color-primary)', marginBottom: '0.4rem' }}>
+            Sign In to maxEvoG
+          </h1>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>
+            Access your applications, track deadlines, and launch assisted sessions.
+          </p>
+        </div>
+
+        {error && (
+          <div style={{
+            backgroundColor: 'var(--color-danger-subtle)',
+            border: '1px solid var(--color-danger-border)',
+            color: 'var(--color-danger)',
+            padding: '0.85rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.88rem'
+          }}>
+            <AlertCircle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="card" style={{ padding: '2rem', backgroundColor: '#FFFFFF' }}>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="email"
+                  className="form-control"
+                  style={{ paddingLeft: '2.5rem' }}
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Mail size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Account Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  className="form-control"
+                  style={{ paddingLeft: '2.5rem' }}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Lock size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary btn-lg"
+              style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}
+            >
+              <LogIn size={18} />
+              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+            </button>
+          </form>
+
+          {/* Quick Demo Credentials */}
+          <div style={{
+            marginTop: '1.5rem',
+            paddingTop: '1.25rem',
+            borderTop: '1px solid var(--color-border)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginBottom: '0.6rem', fontWeight: 600 }}>
+              Quick Evaluation Autofill:
+            </div>
+            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => handleDemoFill('student@example.com', 'Student@12345')}
+                className="btn btn-outline btn-sm"
+                style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
+              >
+                Aspirant Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoFill('agent1@recruitment.gov.in', 'Agent@12345')}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
+              >
+                Desk Agent Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoFill('karmakark1267@gmail.com', 'Maxevog@2026')}
+                className="btn btn-outline btn-sm"
+                style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
+              >
+                Admin Demo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.88rem', color: 'var(--color-text-muted)' }}>
+          Don't have an account yet?{' '}
+          <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
+            Register Free
+          </Link>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.4rem',
+          marginTop: '1.5rem',
+          fontSize: '0.78rem',
+          color: 'var(--color-text-muted)'
+        }}>
+          <ShieldCheck size={14} color="var(--color-accent)" />
+          <span>Encrypted Session • Zero Credential Sharing</span>
+        </div>
+      </div>
+    </div>
+  );
+};

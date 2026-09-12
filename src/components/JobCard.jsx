@@ -1,0 +1,148 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Building2, MapPin, GraduationCap, Users, Calendar, ArrowRight, Sparkles } from 'lucide-react';
+import { CountdownTimer } from './CountdownTimer';
+
+export const JobCard = ({ job }) => {
+  if (!job) return null;
+
+  const isClosingSoon = () => {
+    if (!job.lastDate) return false;
+    const diff = new Date(job.lastDate).getTime() - new Date().getTime();
+    return diff > 0 && diff <= 3 * 24 * 60 * 60 * 1000;
+  };
+
+  return (
+    <div
+      className="card card-interactive"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '1.5rem',
+        position: 'relative',
+        border: isClosingSoon() ? '1px solid var(--color-secondary-border)' : '1px solid var(--color-border)',
+        backgroundColor: '#FFFFFF',
+      }}
+    >
+      {/* Top Meta Bar */}
+      <div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          marginBottom: '0.85rem'
+        }}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            color: 'var(--color-primary)',
+            backgroundColor: 'var(--color-primary-subtle)',
+            padding: '0.2rem 0.55rem',
+            borderRadius: 'var(--radius-sm)'
+          }}>
+            <Building2 size={13} />
+            {job.organization || 'Public Commission'}
+          </span>
+
+          <CountdownTimer targetDate={job.lastDate} compact={true} />
+        </div>
+
+        {/* Job Title */}
+        <h3 style={{
+          fontSize: '1.15rem',
+          fontWeight: 700,
+          lineHeight: 1.35,
+          marginBottom: '0.6rem',
+          color: 'var(--color-text-title)'
+        }}>
+          <Link to={`/jobs/${job.id}`} style={{ color: 'inherit' }}>
+            {job.title}
+          </Link>
+        </h3>
+
+        {/* Department / Category info */}
+        {job.department && (
+          <p style={{
+            fontSize: '0.82rem',
+            color: 'var(--color-text-muted)',
+            marginBottom: '1rem',
+            lineHeight: 1.4
+          }}>
+            {job.department}
+          </p>
+        )}
+
+        {/* Key Metrics Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '0.6rem',
+          padding: '0.85rem',
+          backgroundColor: 'var(--color-bg)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: '1.25rem',
+          border: '1px solid var(--color-border)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+            <Users size={15} color="var(--color-text-muted)" />
+            <span>
+              <strong>{job.vacancies ? job.vacancies.toLocaleString('en-IN') : 'N/A'}</strong> Vacancies
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+            <GraduationCap size={15} color="var(--color-text-muted)" />
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {job.qualification || 'Graduation'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+            <MapPin size={15} color="var(--color-text-muted)" />
+            <span>{job.state || 'All India'}</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
+            <Calendar size={15} color="var(--color-text-muted)" />
+            <span>Last: {job.lastDate ? new Date(job.lastDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'TBA'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Footer */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '0.75rem',
+        paddingTop: '0.85rem',
+        borderTop: '1px solid var(--color-border)',
+        marginTop: 'auto'
+      }}>
+        <Link
+          to={`/jobs/${job.id}`}
+          className="btn btn-outline btn-sm"
+          style={{ flex: 1 }}
+        >
+          <span>View Specs</span>
+          <ArrowRight size={14} />
+        </Link>
+
+        <Link
+          to={`/assistance/book?jobId=${job.id}`}
+          className="btn btn-secondary btn-sm"
+          style={{ flex: 1 }}
+        >
+          <Sparkles size={14} />
+          <span>Apply Assisted (₹50)</span>
+        </Link>
+      </div>
+    </div>
+  );
+};

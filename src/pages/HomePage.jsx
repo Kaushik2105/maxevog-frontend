@@ -1,0 +1,487 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { jobsApi } from '../api/jobs.api';
+import { admitCardsApi } from '../api/admitCards.api';
+import { resultsApi } from '../api/results.api';
+import { JobCard } from '../components/JobCard';
+import { TrustBanner } from '../components/TrustBanner';
+import { 
+  Search, 
+  Filter, 
+  Calendar, 
+  Award, 
+  FileText, 
+  Briefcase, 
+  ArrowRight, 
+  Layers, 
+  CheckCircle2, 
+  TrendingUp, 
+  AlertCircle
+} from 'lucide-react';
+
+export const HomePage = () => {
+  const [jobs, setJobs] = useState([]);
+  const [admitCards, setAdmitCards] = useState([]);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedQualification, setSelectedQualification] = useState('ALL');
+  const [selectedState, setSelectedState] = useState('ALL');
+  const [activeTab, setActiveTab] = useState('jobs'); // 'jobs' | 'admit-cards' | 'results'
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [jobsRes, admitRes, resultsRes] = await Promise.all([
+        jobsApi.getJobs({ limit: 12 }),
+        admitCardsApi.getAdmitCards({ limit: 5 }),
+        resultsApi.getResults({ limit: 5 })
+      ]);
+
+      if (jobsRes.data?.success) {
+        setJobs(jobsRes.data.data.jobs || jobsRes.data.data || []);
+      }
+      if (admitRes.data?.success) {
+        setAdmitCards(admitRes.data.data.admitCards || admitRes.data.data || []);
+      }
+      if (resultsRes.data?.success) {
+        setResults(resultsRes.data.data.results || resultsRes.data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load portal data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = [
+    { label: 'All Sectors', value: 'ALL' },
+    { label: 'Central Govt', value: 'Central' },
+    { label: 'State Govt', value: 'State' },
+    { label: 'Banking & Financial', value: 'Banking' },
+    { label: 'Railways (RRB)', value: 'Railways' },
+    { label: 'Defence & Police', value: 'Defence' },
+    { label: 'Teaching & Edu', value: 'Teaching' }
+  ];
+
+  const qualifications = [
+    { label: 'All Qualifications', value: 'ALL' },
+    { label: '10th / Matric', value: '10th' },
+    { label: '12th / Inter', value: '12th' },
+    { label: 'Graduate / Degree', value: 'Graduate' },
+    { label: 'Post Graduate', value: 'Post Graduate' },
+    { label: 'Engineering / Diploma', value: 'Engineering' }
+  ];
+
+  // Filter jobs locally or prepare query
+  const filteredJobs = jobs.filter((job) => {
+    const matchesSearch = searchQuery === '' || 
+      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (job.department && job.department.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesCategory = selectedCategory === 'ALL' || 
+      (job.category && job.category.toLowerCase().includes(selectedCategory.toLowerCase())) ||
+      (job.organization && job.organization.toLowerCase().includes(selectedCategory.toLowerCase()));
+
+    const matchesQual = selectedQualification === 'ALL' || 
+      (job.qualification && job.qualification.toLowerCase().includes(selectedQualification.toLowerCase()));
+
+    const matchesState = selectedState === 'ALL' || 
+      job.state === selectedState || 
+      job.state === 'All India';
+
+    return matchesSearch && matchesCategory && matchesQual && matchesState;
+  });
+
+  return (
+    <div>
+      {/* Hero Section */}
+      <section style={{
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)',
+        borderBottom: '1px solid var(--color-border)',
+        padding: '3.5rem 0 3rem'
+      }}>
+        <div className="container">
+          <div style={{ maxWidth: '820px', margin: '0 auto', textAlign: 'center' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'var(--color-primary-subtle)',
+              color: 'var(--color-primary)',
+              padding: '0.35rem 0.85rem',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              marginBottom: '1.25rem',
+              border: '1px solid #BFDBFE'
+            }}>
+              <TrendingUp size={15} />
+              <span>Independent Public Career Guidance & Verification Engine</span>
+            </div>
+
+            <h1 style={{
+              fontSize: 'clamp(2rem, 4vw, 2.75rem)',
+              fontWeight: 800,
+              lineHeight: 1.2,
+              marginBottom: '1rem',
+              color: 'var(--color-primary)'
+            }}>
+              Never Miss a Recruitment Deadline.<br />
+              Apply with Guided Precision.
+            </h1>
+
+            <p style={{
+              fontSize: '1.1rem',
+              color: 'var(--color-text-muted)',
+              lineHeight: 1.6,
+              marginBottom: '2rem'
+            }}>
+              Explore real-time government job notifications with zero clutter. Book 1-on-1 cyber assistance sessions at flat ₹50 without sharing passwords or sensitive credentials.
+            </p>
+
+            {/* Main Interactive Search Input */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: '#FFFFFF',
+              border: '2px solid var(--color-primary)',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: 'var(--shadow-md)',
+              padding: '0.4rem 0.6rem 0.4rem 1.25rem',
+              gap: '0.75rem',
+              marginBottom: '1.5rem'
+            }}>
+              <Search size={20} color="var(--color-text-muted)" />
+              <input
+                type="text"
+                placeholder="Search recruitments by post, commission (e.g. UPSC, SSC CGL, IBPS, Railways)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '1rem',
+                  color: 'var(--color-text-title)'
+                }}
+              />
+              <button className="btn btn-primary" style={{ padding: '0.65rem 1.5rem' }}>
+                Find Openings
+              </button>
+            </div>
+
+            {/* Quick Filter Pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }}>
+              {categories.map((cat) => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    border: selectedCategory === cat.value ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
+                    backgroundColor: selectedCategory === cat.value ? 'var(--color-primary)' : '#FFFFFF',
+                    color: selectedCategory === cat.value ? '#FFFFFF' : 'var(--color-text-body)',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Area */}
+      <section style={{ padding: '2.5rem 0 4rem' }}>
+        <div className="container">
+          {/* Trust Banner Prominence */}
+          <TrustBanner />
+
+          {/* Tab Navigation (Jobs vs Admit Cards vs Results) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '2px solid var(--color-border)',
+            marginBottom: '2rem',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setActiveTab('jobs')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 0.5rem',
+                  borderBottom: activeTab === 'jobs' ? '3px solid var(--color-primary)' : '3px solid transparent',
+                  color: activeTab === 'jobs' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                  fontWeight: activeTab === 'jobs' ? 700 : 500,
+                  fontSize: '1rem',
+                  marginBottom: '-2px'
+                }}
+              >
+                <Briefcase size={18} />
+                <span>Active Recruitments ({filteredJobs.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('admit-cards')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 0.5rem',
+                  borderBottom: activeTab === 'admit-cards' ? '3px solid var(--color-primary)' : '3px solid transparent',
+                  color: activeTab === 'admit-cards' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                  fontWeight: activeTab === 'admit-cards' ? 700 : 500,
+                  fontSize: '1rem',
+                  marginBottom: '-2px'
+                }}
+              >
+                <FileText size={18} />
+                <span>Admit Cards ({admitCards.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('results')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 0.5rem',
+                  borderBottom: activeTab === 'results' ? '3px solid var(--color-primary)' : '3px solid transparent',
+                  color: activeTab === 'results' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                  fontWeight: activeTab === 'results' ? 700 : 500,
+                  fontSize: '1rem',
+                  marginBottom: '-2px'
+                }}
+              >
+                <Award size={18} />
+                <span>Exam Results ({results.length})</span>
+              </button>
+            </div>
+
+            {/* Filter controls on the right */}
+            {activeTab === 'jobs' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <select
+                  value={selectedQualification}
+                  onChange={(e) => setSelectedQualification(e.target.value)}
+                  className="form-control form-select"
+                  style={{ width: 'auto', padding: '0.45rem 2rem 0.45rem 0.75rem', fontSize: '0.82rem' }}
+                >
+                  {qualifications.map((q) => (
+                    <option key={q.value} value={q.value}>{q.label}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedState}
+                  onChange={(e) => setSelectedState(e.target.value)}
+                  className="form-control form-select"
+                  style={{ width: 'auto', padding: '0.45rem 2rem 0.45rem 0.75rem', fontSize: '0.82rem' }}
+                >
+                  <option value="ALL">All Regions</option>
+                  <option value="All India">All India (Central)</option>
+                  <option value="Delhi">Delhi NCR</option>
+                  <option value="Uttar Pradesh">Uttar Pradesh</option>
+                  <option value="West Bengal">West Bengal</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Bihar">Bihar</option>
+                  <option value="Rajasthan">Rajasthan</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* TAB 1: JOBS GRID */}
+          {activeTab === 'jobs' && (
+            <div>
+              {loading ? (
+                <div className="grid-cards">
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <div key={n} className="card" style={{ height: '240px', padding: '1.5rem' }}>
+                      <div className="skeleton" style={{ height: '1.5rem', width: '40%', marginBottom: '1rem' }} />
+                      <div className="skeleton" style={{ height: '2rem', width: '80%', marginBottom: '1.5rem' }} />
+                      <div className="skeleton" style={{ height: '4rem', width: '100%' }} />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredJobs.length > 0 ? (
+                <div className="grid-cards">
+                  {filteredJobs.map((job) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </div>
+              ) : (
+                <div className="card" style={{ textAlign: 'center', padding: '3.5rem 2rem' }}>
+                  <AlertCircle size={40} color="var(--color-text-muted)" style={{ margin: '0 auto 1rem' }} />
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>No Active Recruitments Found</h3>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                    Try clearing your search query or relaxing the qualification and region filters.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('ALL');
+                      setSelectedQualification('ALL');
+                      setSelectedState('ALL');
+                    }}
+                    className="btn btn-outline"
+                  >
+                    Reset All Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: ADMIT CARDS */}
+          {activeTab === 'admit-cards' && (
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--color-primary)' }}>Recently Issued Hall Tickets & Admit Cards</h3>
+                <Link to="/admit-cards" className="btn btn-ghost btn-sm" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                  View All <ArrowRight size={14} />
+                </Link>
+              </div>
+
+              {admitCards.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '2rem' }}>
+                  No admit cards active at this moment. Check back soon.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {admitCards.map((card) => (
+                    <div
+                      key={card.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '1rem 1.25rem',
+                        backgroundColor: 'var(--color-bg)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        flexWrap: 'wrap',
+                        gap: '1rem'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                          {card.organization || 'Commission'}
+                        </div>
+                        <h4 style={{ fontSize: '1rem', color: 'var(--color-text-title)', marginTop: '0.2rem' }}>
+                          {card.title}
+                        </h4>
+                        {card.examDate && (
+                          <div style={{ fontSize: '0.82rem', color: 'var(--color-secondary)', fontWeight: 600, marginTop: '0.3rem' }}>
+                            Exam Date: {new Date(card.examDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        )}
+                      </div>
+
+                      {card.downloadUrl ? (
+                        <a
+                          href={card.downloadUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-primary btn-sm"
+                        >
+                          <FileText size={14} />
+                          Download Card
+                        </a>
+                      ) : (
+                        <Link to={`/admit-cards`} className="btn btn-outline btn-sm">
+                          View Instructions
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: RESULTS */}
+          {activeTab === 'results' && (
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--color-primary)' }}>Official Gazette Results & Cut-off Marks</h3>
+                <Link to="/results" className="btn btn-ghost btn-sm" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                  View All <ArrowRight size={14} />
+                </Link>
+              </div>
+
+              {results.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '2rem' }}>
+                  No published results currently available.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {results.map((result) => (
+                    <div
+                      key={result.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '1rem 1.25rem',
+                        backgroundColor: 'var(--color-bg)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        flexWrap: 'wrap',
+                        gap: '1rem'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                          {result.organization || 'Authority'}
+                        </div>
+                        <h4 style={{ fontSize: '1rem', color: 'var(--color-text-title)', marginTop: '0.2rem' }}>
+                          {result.title}
+                        </h4>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--color-accent)', fontWeight: 600, marginTop: '0.3rem' }}>
+                          Declared: {result.declaredDate ? new Date(result.declaredDate).toLocaleDateString('en-IN') : 'Recent'}
+                        </div>
+                      </div>
+
+                      {result.pdfUrl ? (
+                        <a
+                          href={result.pdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-outline btn-sm"
+                        >
+                          <Award size={14} />
+                          Check Merit List
+                        </a>
+                      ) : (
+                        <Link to={`/results`} className="btn btn-outline btn-sm">
+                          View Details
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};
