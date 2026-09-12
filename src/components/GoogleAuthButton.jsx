@@ -9,7 +9,7 @@ export const GoogleAuthButton = ({ text = 'Continue with Google', onSuccess }) =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const clientId = import.meta.env.GOOGLE_CLIENT_ID || '';
 
   const handleCredentialResponse = async (response) => {
     setLoading(true);
