@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Clock, Lock, CheckCircle2, Heart, HelpCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const Footer = () => {
+  const { isAdmin, isAgent } = useAuth();
   return (
     <footer style={{
       backgroundColor: 'var(--color-primary)',
@@ -130,20 +132,16 @@ export const Footer = () => {
         }}>
           {/* Column 1: Brand & Disclaimer */}
           <div style={{ gridColumn: 'span 2' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-              <div style={{
-                width: '2rem',
-                height: '2rem',
-                backgroundColor: '#FFFFFF',
-                color: 'var(--color-primary)',
-                fontWeight: 800,
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                mE
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <img
+                src="https://res.cloudinary.com/dtyodrnjg/image/upload/v1789240920/cad0234d-7753-4e53-b919-421875a6387b_ttzjvc.png"
+                alt="maxEvoG Logo"
+                style={{
+                  height: '2.5rem',
+                  width: 'auto',
+                  objectFit: 'contain',
+                }}
+              />
               <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF' }}>maxEvoG</span>
               <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)' }}>
                 Startup Initiative
@@ -176,8 +174,18 @@ export const Footer = () => {
               <li><Link to="/" style={{ color: '#94A3B8', transition: 'color 0.2s' }}>Recruitment Explorer</Link></li>
               <li><Link to="/admit-cards" style={{ color: '#94A3B8' }}>Admit Cards & Hall Tickets</Link></li>
               <li><Link to="/results" style={{ color: '#94A3B8' }}>Exam Results & Merit Lists</Link></li>
-              <li><Link to="/assistance/book" style={{ color: '#94A3B8' }}>1-on-1 Assisted Application</Link></li>
-              <li><Link to="/membership" style={{ color: '#FED7AA', fontWeight: 600 }}>Pro Club (₹99 / 3 Months)</Link></li>
+              {!(isAdmin || isAgent) && (
+                <>
+                  <li><Link to="/assistance/book" style={{ color: '#94A3B8' }}>1-on-1 Assisted Application</Link></li>
+                  <li><Link to="/membership" style={{ color: '#FED7AA', fontWeight: 600 }}>Pro Club (₹99 / 3 Months)</Link></li>
+                </>
+              )}
+              {isAgent && (
+                <li><Link to="/agent" style={{ color: 'var(--color-secondary)', fontWeight: 600 }}>Specialist Desk Workbench</Link></li>
+              )}
+              {isAdmin && (
+                <li><Link to="/admin" style={{ color: '#C084FC', fontWeight: 600 }}>Master Admin Panel</Link></li>
+              )}
             </ul>
           </div>
 

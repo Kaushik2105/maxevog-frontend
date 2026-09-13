@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../api/admin.api';
+import { jobsApi } from '../../api/jobs.api';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Users, 
@@ -122,9 +123,9 @@ export const AdminDashboardPage = () => {
           setApplications(res.data.data.applications || []);
         }
       } else if (activeTab === 'recruitments') {
-        const res = await fetch('http://localhost:5000/api/v1/jobs?limit=100').then(r => r.json());
-        if (res.success) {
-          setJobs(res.data.jobs || []);
+        const res = await jobsApi.getJobs({ limit: 100 });
+        if (res.data?.success) {
+          setJobs(res.data.data.jobs || res.data.data || []);
         }
       } else if (activeTab === 'users') {
         const res = await adminApi.getUsers({ limit: 100 });
@@ -430,7 +431,7 @@ export const AdminDashboardPage = () => {
                   <Briefcase size={18} color="var(--color-secondary)" />
                 </div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-secondary)' }} className="tabular-nums">
-                  {stats?.activeJobs || 18}
+                  {stats?.activeJobs || 0}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 600, marginTop: '0.2rem' }}>
                   Live Gazette Openings
@@ -456,7 +457,7 @@ export const AdminDashboardPage = () => {
                   <IndianRupee size={18} color="#9333EA" />
                 </div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-text-title)' }} className="tabular-nums">
-                  ₹{stats?.totalRevenue ? stats.totalRevenue.toLocaleString('en-IN') : '2,850'}
+                  ₹{(stats?.totalRevenue || 0).toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#9333EA', fontWeight: 600, marginTop: '0.2rem' }}>
                   {stats?.activePaidMembers || 0} Active Pro Passes (₹99 / 3 Mo)
@@ -476,12 +477,12 @@ export const AdminDashboardPage = () => {
                 gap: '1rem'
               }}>
                 {[
-                  { label: 'Drafts Created', count: stats?.distribution?.DRAFT || 4, color: 'var(--color-text-muted)' },
-                  { label: 'Assistance Scheduled', count: stats?.distribution?.ASSISTANCE_SCHEDULED || 8, color: 'var(--color-primary)' },
-                  { label: 'Docs Verified', count: stats?.distribution?.DOCUMENTS_VERIFIED || 6, color: 'var(--color-accent)' },
-                  { label: 'Consent Pending', count: stats?.distribution?.CANDIDATE_AUTHORIZATION_PENDING || 3, color: 'var(--color-secondary)' },
-                  { label: 'Officially Submitted', count: stats?.distribution?.SUBMITTED || 14, color: 'var(--color-accent)' },
-                  { label: 'Admit Card Issued', count: stats?.distribution?.ADMIT_CARD_READY || 5, color: '#9333EA' },
+                  { label: 'Drafts Created', count: stats?.distribution?.DRAFT || 0, color: 'var(--color-text-muted)' },
+                  { label: 'Assistance Scheduled', count: stats?.distribution?.ASSISTANCE_SCHEDULED || 0, color: 'var(--color-primary)' },
+                  { label: 'Docs Verified', count: stats?.distribution?.DOCUMENTS_VERIFIED || 0, color: 'var(--color-accent)' },
+                  { label: 'Consent Pending', count: stats?.distribution?.CANDIDATE_AUTHORIZATION_PENDING || 0, color: 'var(--color-secondary)' },
+                  { label: 'Officially Submitted', count: stats?.distribution?.SUBMITTED || 0, color: 'var(--color-accent)' },
+                  { label: 'Admit Card Issued', count: stats?.distribution?.ADMIT_CARD_READY || 0, color: '#9333EA' },
                 ].map((st) => (
                   <div
                     key={st.label}
@@ -861,7 +862,7 @@ export const AdminDashboardPage = () => {
                   TOTAL PLATFORM REVENUE
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }} className="tabular-nums">
-                  ₹{financials?.totalRevenue ? financials.totalRevenue.toLocaleString('en-IN') : '2,850'}
+                  ₹{(financials?.totalRevenue || 0).toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-accent)', fontWeight: 600, marginTop: '0.2rem' }}>
                   Settled Collections
@@ -873,7 +874,7 @@ export const AdminDashboardPage = () => {
                   DESK ASSISTANCE CHARGES (₹50)
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)' }} className="tabular-nums">
-                  ₹{financials?.assistanceRevenue ? financials.assistanceRevenue.toLocaleString('en-IN') : '1,950'}
+                  ₹{(financials?.assistanceRevenue || 0).toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
                   Transparent application assistance
@@ -885,7 +886,7 @@ export const AdminDashboardPage = () => {
                   PRO CLUB MEMBERSHIPS (₹99)
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#9333EA' }} className="tabular-nums">
-                  ₹{financials?.membershipRevenue ? financials.membershipRevenue.toLocaleString('en-IN') : '900'}
+                  ₹{(financials?.membershipRevenue || 0).toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
                   Quarterly aspirant subscriptions

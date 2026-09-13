@@ -1,15 +1,71 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Building2, MapPin, GraduationCap, Users, Calendar, ArrowRight, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Building2, MapPin, GraduationCap, Users, Calendar, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { CountdownTimer } from './CountdownTimer';
+import { useAuth } from '../context/AuthContext';
 
 export const JobCard = ({ job }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isAdmin, isAgent, user } = useAuth();
+
   if (!job) return null;
 
   const isClosingSoon = () => {
     if (!job.lastDate) return false;
     const diff = new Date(job.lastDate).getTime() - new Date().getTime();
     return diff > 0 && diff <= 3 * 24 * 60 * 60 * 1000;
+  };
+
+  // Evaluate candidate eligibility against job specifications
+  const candidateDegree = user?.profile?.qualification || user?.qualification || '';
+  const candidateBranch = user?.profile?.branch || user?.branch || '';
+
+  const checkEligibility = () => {
+    if (!isAuthenticated || !candidateDegree || isAdmin || isAgent) return null;
+
+    if (job.eligibility?.status === 'LIKELY_ELIGIBLE' || job.eligibility?.isEligible) {
+      return { eligible: true, label: 'Eligible for You' };
+    }
+
+    const normJobQual = (job.qualification || '').toLowerCase();
+    const normCandDegree = candidateDegree.toLowerCase();
+    const normCandBranch = candidateBranch.toLowerCase();
+    const normJobDesc = `${job.title || ''} ${job.description || ''} ${job.department || ''}`.toLowerCase();
+
+    // Check Any Graduate / All Discipline
+    const isAnyGraduate = normJobQual.includes('any graduate') || 
+                          normJobQual.includes('any degree') || 
+                          normJobQual.includes('graduation') || 
+                          normJobQual === 'graduate';
+
+    const degreeMatches = isAnyGraduate || 
+                          normJobQual.includes(normCandDegree) || 
+                          normCandDegree.includes(normJobQual);
+
+    if (!degreeMatches) return null;
+
+    // Check branch requirements if specific branch mentioned
+    let branchMatches = true;
+    const mentionsBranchKeywords = normJobQual.includes('civil') || normJobQual.includes('electrical') ||
+      normJobQual.includes('mechanical') || normJobQual.includes('computer') || normJobQual.includes('it');
+    
+    if (mentionsBranchKeywords && normCandBranch && normCandBranch !== 'other') {
+      branchMatches = normJobQual.includes(normCandBranch) || normJobDesc.includes(normCandBranch);
+    }
+
+    if (degreeMatches && branchMatches) {
+      return { eligible: true, label: `Eligible: ${candidateDegree}` };
+    }
+    return null;
+  };
+
+  const matchInfo = checkEligibility();
+
+  const handleApplyAssisted = (e) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      navigate('/login', { state: { from: `/assistance/book?jobId=${job.id}` } });
+    }
   };
 
   return (
@@ -34,21 +90,40 @@ export const JobCard = ({ job }) => {
           gap: '0.5rem',
           marginBottom: '0.85rem'
         }}>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            color: 'var(--color-primary)',
-            backgroundColor: 'var(--color-primary-subtle)',
-            padding: '0.2rem 0.55rem',
-            borderRadius: 'var(--radius-sm)'
-          }}>
-            <Building2 size={13} />
-            {job.organization || 'Public Commission'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              color: 'var(--color-primary)',
+              backgroundColor: 'var(--color-primary-subtle)',
+              padding: '0.2rem 0.55rem',
+              borderRadius: 'var(--radius-sm)'
+            }}>
+              <Building2 size={13} />
+              {job.organization || 'Public Commission'}
+            </span>
+
+            {matchInfo?.eligible && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: 'var(--color-accent)',
+                backgroundColor: 'var(--color-accent-subtle)',
+                border: '1px solid var(--color-accent-border)',
+                padding: '0.2rem 0.55rem',
+                borderRadius: 'var(--radius-full)'
+              }}>
+                <CheckCircle2 size={12} /> {matchInfo.label}
+              </span>
+            )}
+          </div>
 
           <CountdownTimer targetDate={job.lastDate} compact={true} />
         </div>
@@ -127,21 +202,25 @@ export const JobCard = ({ job }) => {
       }}>
         <Link
           to={`/jobs/${job.id}`}
-          className="btn btn-outline btn-sm"
-          style={{ flex: 1 }}
+          className={isAdmin || isAgent ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm"}
+          style={{ flex: 1, justifyContent: 'center' }}
         >
           <span>View Specs</span>
           <ArrowRight size={14} />
         </Link>
 
-        <Link
-          to={`/assistance/book?jobId=${job.id}`}
-          className="btn btn-secondary btn-sm"
-          style={{ flex: 1 }}
-        >
-          <Sparkles size={14} />
-          <span>Apply Assisted (₹50)</span>
-        </Link>
+        {/* Hide Apply Assisted button for staff (Admin / Agent) */}
+        {!isAdmin && !isAgent && (
+          <Link
+            to={`/assistance/book?jobId=${job.id}`}
+            onClick={handleApplyAssisted}
+            className="btn btn-secondary btn-sm"
+            style={{ flex: 1, justifyContent: 'center' }}
+          >
+            <Sparkles size={14} />
+            <span>Apply Assisted (₹50)</span>
+          </Link>
+        )}
       </div>
     </div>
   );

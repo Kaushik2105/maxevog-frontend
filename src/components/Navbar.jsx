@@ -37,8 +37,10 @@ export const Navbar = () => {
     { name: 'Recruitments', path: '/', icon: Briefcase },
     { name: 'Admit Cards', path: '/admit-cards', icon: FileText },
     { name: 'Results', path: '/results', icon: Award },
-    { name: 'Apply Assisted', path: '/assistance/book', icon: CalendarCheck, badge: '₹50' },
+    ...(!(isAdmin || isAgent) ? [{ name: 'Apply Assisted', path: '/assistance/book', icon: CalendarCheck, badge: '₹50' }] : []),
   ];
+
+  const completionPercentage = user?.profile?.profileCompletionPercentage ?? 0;
 
   return (
     <header style={{
@@ -49,46 +51,57 @@ export const Navbar = () => {
       zIndex: 50,
       boxShadow: 'var(--shadow-xs)'
     }}>
-      {/* Top micro-announcement bar highlighting startup trust promises */}
+      {/* Top marquee announcement bar */}
       <div style={{
-        backgroundColor: 'var(--color-primary)',
+        backgroundColor: 'var(--color-primary, #0B2545)',
         color: '#E2E8F0',
-        fontSize: '0.78rem',
-        padding: '0.4rem 1.5rem',
-        textAlign: 'center',
-        fontWeight: 500,
+        fontSize: '0.76rem',
+        padding: '0.35rem 0',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.75rem'
+        borderBottom: '1px solid rgba(255,255,255,0.08)'
       }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-          <ShieldCheck size={14} color="#38BDF8" />
-          <strong>Zero Credential Storage Guarantee:</strong> We never store passwords, OTPs, or captchas during assisted sessions.
-        </span>
-        <span style={{ opacity: 0.5, display: 'inline' }}>|</span>
-        <span>Never miss an application deadline again.</span>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '2.5rem',
+          animation: 'marquee 25s linear infinite',
+          willChange: 'transform',
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <ShieldCheck size={14} color="#38BDF8" />
+            <strong>Zero Credential Storage Guarantee:</strong> We never store passwords, OTPs, or captchas during assisted sessions.
+          </span>
+          <span style={{ opacity: 0.5 }}>•</span>
+          <span>100% Confidentiality & Data Privacy Guarantee</span>
+          <span style={{ opacity: 0.5 }}>•</span>
+          <span>Independent Aspirant Assistance Initiative • Never miss an application deadline again.</span>
+          <span style={{ opacity: 0.5 }}>•</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <ShieldCheck size={14} color="#38BDF8" />
+            <strong>Zero Credential Storage Guarantee:</strong> We never store passwords, OTPs, or captchas during assisted sessions.
+          </span>
+          <span style={{ opacity: 0.5 }}>•</span>
+          <span>100% Confidentiality & Data Privacy Guarantee</span>
+          <span style={{ opacity: 0.5 }}>•</span>
+          <span>Independent Aspirant Assistance Initiative • Never miss an application deadline again.</span>
+        </div>
       </div>
 
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '4.25rem' }}>
         {/* Brand Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-          <div style={{
-            width: '2.5rem',
-            height: '2.5rem',
-            backgroundColor: 'var(--color-primary)',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#FFFFFF',
-            fontWeight: 800,
-            fontSize: '1.2rem',
-            letterSpacing: '-0.03em',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            mE
-          </div>
+          <img
+            src="https://res.cloudinary.com/dtyodrnjg/image/upload/v1789240920/cad0234d-7753-4e53-b919-421875a6387b_ttzjvc.png"
+            alt="maxEvoG Logo"
+            style={{
+              height: '2.5rem',
+              width: 'auto',
+              objectFit: 'contain',
+            }}
+          />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
@@ -165,23 +178,25 @@ export const Navbar = () => {
             </Link>
           )}
 
-          <Link
-            to="/membership"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.5rem 0.85rem',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.88rem',
-              fontWeight: isActive('/membership') ? 700 : 500,
-              color: isActive('/membership') ? 'var(--color-secondary)' : 'var(--color-text-body)',
-              backgroundColor: isActive('/membership') ? 'var(--color-secondary-subtle)' : 'transparent',
-            }}
-          >
-            <Sparkles size={16} color={isActive('/membership') ? 'var(--color-secondary)' : '#F59E0B'} />
-            <span>Pro Club</span>
-          </Link>
+          {!(isAgent || isAdmin) && (
+            <Link
+              to="/membership"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.5rem 0.85rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.88rem',
+                fontWeight: isActive('/membership') ? 700 : 500,
+                color: isActive('/membership') ? 'var(--color-secondary)' : 'var(--color-text-body)',
+                backgroundColor: isActive('/membership') ? 'var(--color-secondary-subtle)' : 'transparent',
+              }}
+            >
+              <Sparkles size={16} color={isActive('/membership') ? 'var(--color-secondary)' : '#F59E0B'} />
+              <span>Pro Club</span>
+            </Link>
+          )}
 
           {(isAgent || isAdmin) && (
             <Link
@@ -277,11 +292,11 @@ export const Navbar = () => {
                     <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-secondary)' }}>
                       PRO MEMBER
                     </span>
-                  ) : (
+                  ) : completionPercentage < 100 ? (
                     <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--color-accent)' }}>
-                      {user?.profile?.profileCompletionPercentage ?? 0}% Complete
+                      {completionPercentage}% Complete
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </Link>
 
@@ -377,22 +392,24 @@ export const Navbar = () => {
               <span>My Applications</span>
             </Link>
           )}
-          <Link
-            to="/membership"
-            onClick={() => setMobileMenuOpen(false)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.65rem 0.75rem',
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              color: 'var(--color-secondary)'
-            }}
-          >
-            <Sparkles size={18} color="var(--color-secondary)" />
-            <span>Pro Club (₹99 / 3 Mo)</span>
-          </Link>
+          {!(isAgent || isAdmin) && (
+            <Link
+              to="/membership"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.65rem 0.75rem',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                color: 'var(--color-secondary)'
+              }}
+            >
+              <Sparkles size={18} color="var(--color-secondary)" />
+              <span>Pro Club (₹99 / 3 Mo)</span>
+            </Link>
+          )}
           {(isAgent || isAdmin) && (
             <Link
               to="/agent"

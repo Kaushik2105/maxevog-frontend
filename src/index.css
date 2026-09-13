@@ -547,3 +547,94 @@ img {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* Ticker / Marquee Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Overflow visible utility for badge visibility */
+.overflow-visible {
+  overflow: visible !important;
+}
+
+/* Table Responsive Container */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   Mobile & Responsive Adjustments
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root {
+    --container-padding: 1rem;
+  }
+
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  h1 {
+    font-size: 1.75rem !important;
+  }
+
+  h2 {
+    font-size: 1.4rem !important;
+  }
+
+  /* Form layouts wrap on smaller tablets */
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .btn-lg {
+    padding: 0.75rem 1.25rem !important;
+    font-size: 0.92rem !important;
+  }
+
+  /* Navbar mobile spacing */
+  .navbar-container {
+    padding: 0.5rem 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 14px;
+  }
+
+  .btn {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  /* Card padding on small mobile screens */
+  .card {
+    padding: 1.25rem !important;
+  }
+
+  .modal-content {
+    margin: 0.5rem;
+    max-height: 95vh;
+  }
+}
+

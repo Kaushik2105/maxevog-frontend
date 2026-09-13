@@ -23,12 +23,19 @@ import {
 export const JobDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin, isAgent } = useAuth();
 
   const [job, setJob] = useState(null);
   const [eligibility, setEligibility] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
+
+  const handleBookAssisted = (e) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      navigate('/login', { state: { from: `/assistance/book?jobId=${job?.id || id}` } });
+    }
+  };
 
   useEffect(() => {
     fetchJobDetails();
@@ -193,13 +200,16 @@ export const JobDetailPage = () => {
                   <ExternalLink size={15} />
                 </a>
               )}
-              <Link
-                to={`/assistance/book?jobId=${job.id}`}
-                className="btn btn-secondary"
-              >
-                <Sparkles size={16} />
-                <span>Book Assisted Application (₹50)</span>
-              </Link>
+              {!isAdmin && !isAgent && (
+                <Link
+                  to={`/assistance/book?jobId=${job.id}`}
+                  onClick={handleBookAssisted}
+                  className="btn btn-secondary"
+                >
+                  <Sparkles size={16} />
+                  <span>Book Assisted Application (₹50)</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -420,80 +430,83 @@ export const JobDetailPage = () => {
               )}
             </div>
 
-            {/* Assistance Booking Promotion Card */}
-            <div style={{
-              background: 'linear-gradient(135deg, #0B2545 0%, #163A66 100%)',
-              color: '#FFFFFF',
-              borderRadius: 'var(--radius-lg)',
-              padding: '1.5rem',
-              boxShadow: 'var(--shadow-md)'
-            }}>
+            {/* Assistance Booking Promotion Card - candidates only */}
+            {!isAdmin && !isAgent && (
               <div style={{
-                backgroundColor: '#D95D0F',
+                background: 'linear-gradient(135deg, #0B2545 0%, #163A66 100%)',
                 color: '#FFFFFF',
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                textTransform: 'uppercase',
-                padding: '0.2rem 0.5rem',
-                borderRadius: 'var(--radius-sm)',
-                display: 'inline-block',
-                marginBottom: '0.75rem'
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.5rem',
+                boxShadow: 'var(--shadow-md)'
               }}>
-                Application Assistance
-              </div>
-              <h4 style={{ fontSize: '1.1rem', color: '#FFFFFF', marginBottom: '0.5rem' }}>
-                Need Help Applying?
-              </h4>
-              <p style={{ fontSize: '0.82rem', color: '#CBD5E1', lineHeight: 1.5, marginBottom: '1.25rem' }}>
-                Book a 1-on-1 Google Meet session with an application specialist. We guide you live while you retain full control of your passwords and OTPs.
-              </p>
-
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.75rem',
-                marginBottom: '1.25rem',
-                fontSize: '0.8rem',
-                color: '#E2E8F0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.35rem'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Board Exam Fee:</span>
-                  <strong>{job.fee === 0 ? '₹0 (Free)' : `₹${job.fee}`}</strong>
+                <div style={{
+                  backgroundColor: '#D95D0F',
+                  color: '#FFFFFF',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'inline-block',
+                  marginBottom: '0.75rem'
+                }}>
+                  Application Assistance
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>maxEvoG Desk Charge:</span>
-                  <strong>₹50</strong>
+                <h4 style={{ fontSize: '1.1rem', color: '#FFFFFF', marginBottom: '0.5rem' }}>
+                  Need Help Applying?
+                </h4>
+                <p style={{ fontSize: '0.82rem', color: '#CBD5E1', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+                  Book a 1-on-1 Google Meet session with an application specialist. We guide you live while you retain full control of your passwords and OTPs.
+                </p>
+
+                <div style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.8rem',
+                  color: '#E2E8F0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Board Exam Fee:</span>
+                    <strong>{job.fee === 0 ? '₹0 (Free)' : `₹${job.fee}`}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>maxEvoG Desk Charge:</span>
+                    <strong>₹50</strong>
+                  </div>
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', color: '#FED7AA' }}>
+                    <strong>Total Transparent:</strong>
+                    <strong>₹{(job.fee || 0) + 50}</strong>
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', color: '#FED7AA' }}>
-                  <strong>Total Transparent:</strong>
-                  <strong>₹{(job.fee || 0) + 50}</strong>
+
+                <Link
+                  to={`/assistance/book?jobId=${job.id}`}
+                  onClick={handleBookAssisted}
+                  className="btn btn-secondary"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  <Sparkles size={16} /> Book Session (₹50)
+                </Link>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  marginTop: '0.85rem',
+                  fontSize: '0.72rem',
+                  color: '#94A3B8',
+                  justifyContent: 'center'
+                }}>
+                  <ShieldCheck size={14} color="#38BDF8" />
+                  <span>Zero OTP / password retention policy</span>
                 </div>
               </div>
-
-              <Link
-                to={`/assistance/book?jobId=${job.id}`}
-                className="btn btn-secondary"
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                <Sparkles size={16} /> Book Session (₹50)
-              </Link>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                marginTop: '0.85rem',
-                fontSize: '0.72rem',
-                color: '#94A3B8',
-                justifyContent: 'center'
-              }}>
-                <ShieldCheck size={14} color="#38BDF8" />
-                <span>Zero OTP / password retention policy</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

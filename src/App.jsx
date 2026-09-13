@@ -20,11 +20,14 @@ import { RegisterPage } from './pages/RegisterPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AgentDashboardPage } from './pages/agent/AgentDashboardPage';
 
+import { ToastProvider } from './context/ToastContext';
+
 export const App = () => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Navbar />
-      <main style={{ flex: 1 }}>
+    <ToastProvider>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Navbar />
+        <main style={{ flex: 1 }}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
@@ -94,8 +97,9 @@ export const App = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ToastProvider>
   );
 };
 

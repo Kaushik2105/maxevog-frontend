@@ -33,6 +33,9 @@ export const ProtectedRoute = ({ children, requireAdmin = false, requireAgent = 
   }
 
   if (!isAuthenticated) {
+    if (location.pathname.startsWith('/assistance')) {
+      return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
+    }
     return <Navigate to="/" replace />;
   }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { membershipApi } from '../api/membership.api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { 
   Sparkles, 
   CheckCircle2, 
@@ -15,7 +16,8 @@ import {
 
 export const MembershipPage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isPro, user, refreshUser } = useAuth();
+  const { isAuthenticated, isPro, isAdmin, isAgent, user, refreshUser } = useAuth();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [membershipData, setMembershipData] = useState(null);
   const [success, setSuccess] = useState('');
@@ -40,7 +42,12 @@ export const MembershipPage = () => {
 
   const handleSubscribe = async () => {
     if (!isAuthenticated) {
-      navigate('/', { replace: true });
+      navigate('/login', { state: { from: '/membership' } });
+      return;
+    }
+
+    if (isAdmin || isAgent) {
+      showToast('error', 'Pro Club memberships are exclusive to candidate and aspirant accounts.');
       return;
     }
 
@@ -52,18 +59,24 @@ export const MembershipPage = () => {
       const res = await membershipApi.subscribe({
         plan: 'pro_quarterly',
         durationMonths: 3,
-        amount: 99
+        amount: 199
       });
 
       if (res.data?.success) {
-        setSuccess('Congratulations! Your maxEvoG Pro Membership has been activated.');
+        const msg = 'Congratulations! Your maxEvoG Pro Membership has been activated.';
+        setSuccess(msg);
+        showToast('success', msg);
         await refreshUser();
         fetchCurrentMembership();
       } else {
-        setError(res.data?.message || 'Subscription failed');
+        const errMsg = res.data?.message || 'Subscription failed';
+        setError(errMsg);
+        showToast('error', errMsg);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Transaction failed. Please try again.');
+      const errMsg = err.response?.data?.message || 'Transaction failed. Please try again.';
+      setError(errMsg);
+      showToast('error', errMsg);
     } finally {
       setLoading(false);
     }
@@ -141,17 +154,19 @@ export const MembershipPage = () => {
         )}
 
         {/* Pricing Card */}
-        <div className="card" style={{
+        <div className="card overflow-visible" style={{
           padding: '2.5rem',
           border: '2px solid var(--color-secondary-border)',
           position: 'relative',
           backgroundColor: '#FFFFFF',
-          boxShadow: 'var(--shadow-lg)'
+          boxShadow: 'var(--shadow-lg)',
+          overflow: 'visible'
         }}>
           <div style={{
             position: 'absolute',
             top: '-12px',
             right: '24px',
+            zIndex: 10,
             backgroundColor: 'var(--color-secondary)',
             color: '#FFFFFF',
             fontSize: '0.75rem',
@@ -159,7 +174,8 @@ export const MembershipPage = () => {
             padding: '0.25rem 0.75rem',
             borderRadius: 'var(--radius-full)',
             letterSpacing: '0.04em',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            boxShadow: '0 2px 6px rgba(217, 93, 15, 0.35)'
           }}>
             Most Popular
           </div>
@@ -176,10 +192,10 @@ export const MembershipPage = () => {
 
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)' }} className="tabular-nums">
-                ₹99 <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>/ 3 Months</span>
+                ₹199 <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>/ 3 Months</span>
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--color-accent)', fontWeight: 600 }}>
-                Only ₹33 per month
+                Only ₹67 per month
               </div>
             </div>
           </div>
@@ -222,7 +238,19 @@ export const MembershipPage = () => {
           </div>
 
           {/* Action Button */}
-          {isPro ? (
+          {isAdmin || isAgent ? (
+            <div style={{
+              backgroundColor: 'var(--color-primary-subtle)',
+              border: '1px solid var(--color-border)',
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              textAlign: 'center',
+              fontWeight: 600,
+              color: 'var(--color-primary)'
+            }}>
+              Staff Portal Notice: You are signed in as {isAdmin ? 'Admin' : 'Specialist Agent'}. Pro Club passes are designated for candidate / aspirant accounts.
+            </div>
+          ) : isPro ? (
             <div style={{
               backgroundColor: 'var(--color-accent-subtle)',
               border: '1px solid var(--color-accent-border)',
@@ -242,7 +270,7 @@ export const MembershipPage = () => {
               style={{ width: '100%', justifyContent: 'center' }}
             >
               <Zap size={18} />
-              <span>{loading ? 'Processing Activation...' : 'Activate Pro Club (₹99 / 3 Months)'}</span>
+              <span>{loading ? 'Processing Activation...' : 'Activate Pro Club (₹199 / 3 Months)'}</span>
             </button>
           )}
 

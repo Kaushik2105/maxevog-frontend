@@ -4,10 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { ShieldCheck, Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 
+import { useToast } from '../context/ToastContext';
+
 export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const toast = useToast();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,9 +27,12 @@ export const LoginPage = () => {
 
     try {
       await login(email, password);
+      toast.success('Successfully signed in! Welcome back.');
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      const msg = err.response?.data?.message || err.message || 'Invalid email or password';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -36,22 +42,17 @@ export const LoginPage = () => {
     <div style={{ padding: '3.5rem 0 5rem' }}>
       <div className="container" style={{ maxWidth: '460px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: '3rem',
-            height: '3rem',
-            backgroundColor: 'var(--color-primary)',
-            color: '#FFFFFF',
-            fontWeight: 800,
-            fontSize: '1.4rem',
-            borderRadius: 'var(--radius-md)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '1rem',
-            boxShadow: 'var(--shadow-md)'
-          }}>
-            mE
-          </div>
+          <img
+            src="https://res.cloudinary.com/dtyodrnjg/image/upload/v1789240920/cad0234d-7753-4e53-b919-421875a6387b_ttzjvc.png"
+            alt="maxEvoG Logo"
+            style={{
+              height: '3.5rem',
+              width: 'auto',
+              margin: '0 auto 1rem',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
           <h1 style={{ fontSize: '1.75rem', color: 'var(--color-primary)', marginBottom: '0.4rem' }}>
             Sign In to maxEvoG
           </h1>
