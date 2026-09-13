@@ -9,7 +9,10 @@ export const GoogleAuthButton = ({ text = 'Continue with Google', onSuccess }) =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const clientId = import.meta.env.GOOGLE_CLIENT_ID || '';
+  const clientId =
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    import.meta.env.GOOGLE_CLIENT_ID ||
+    '';
 
   const handleCredentialResponse = async (response) => {
     setLoading(true);
@@ -63,6 +66,10 @@ export const GoogleAuthButton = ({ text = 'Continue with Google', onSuccess }) =
 
   // Demo Google Login fallback if Google Client ID is not yet provided
   const handleSimulatedGoogleLogin = async () => {
+    if (import.meta.env.PROD) {
+      setError('Google Sign-In is not configured. Please configure VITE_GOOGLE_CLIENT_ID in environment variables.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -118,10 +125,12 @@ export const GoogleAuthButton = ({ text = 'Continue with Google', onSuccess }) =
       script.defer = true;
       script.onload = initializeGis;
       document.body.appendChild(script);
-    } else {
+    } else if (window.google?.accounts?.id) {
       initializeGis();
+    } else {
+      script.addEventListener('load', initializeGis);
     }
-  }, [clientId]);
+  }, [clientId, text]);
 
   return (
     <div style={{ width: '100%', marginBottom: '1.25rem' }}>
