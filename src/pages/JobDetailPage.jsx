@@ -17,13 +17,18 @@ import {
   AlertCircle, 
   Clock, 
   ArrowLeft,
-  FileCheck
+  FileCheck,
+  Table,
+  FileText,
+  XCircle,
+  CheckSquare
 } from 'lucide-react';
+import { evaluateCandidateEligibility, ELIGIBILITY_STATUS } from '../utils/eligibility';
 
 export const JobDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, isAdmin, isAgent } = useAuth();
+  const { isAuthenticated, isAdmin, isAgent, user } = useAuth();
 
   const [job, setJob] = useState(null);
   const [eligibility, setEligibility] = useState(null);
@@ -73,6 +78,63 @@ export const JobDetailPage = () => {
     } finally {
       setCheckingEligibility(false);
     }
+  };
+
+  // Dynamic candidate eligibility evaluation
+  const activeEligibility = eligibility
+    ? evaluateCandidateEligibility(user, { ...job, eligibility })
+    : (isAuthenticated ? evaluateCandidateEligibility(user, job) : null);
+
+  const getSpecificationTables = () => {
+    if (!job) return [];
+    let parsedTables = [];
+    if (Array.isArray(job.tables) && job.tables.length > 0) {
+      parsedTables = job.tables;
+    } else if (typeof job.tables === 'string') {
+      try {
+        const p = JSON.parse(job.tables);
+        if (Array.isArray(p) && p.length > 0) parsedTables = p;
+      } catch (e) {}
+    }
+
+    if (parsedTables.length > 0) {
+      return parsedTables;
+    }
+
+    // Default synthesis if no custom tables exist
+    return [
+      {
+        title: 'Recruitment Overview',
+        rows: [
+          { key: 'Recruitment Authority / Commission', value: job.organization || 'Official Commission' },
+          { key: 'Official Examination Name', value: job.title },
+          { key: 'Department / Ministry', value: job.department || 'Central / State Govt Ministries & Departments' },
+          { key: 'Total Advertised Vacancies', value: job.vacancies ? `${job.vacancies.toLocaleString('en-IN')} Posts` : 'Refer Official Gazette' },
+          { key: 'Application Last Date', value: job.lastDate ? new Date(job.lastDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'To Be Announced' },
+          { key: 'Minimum Age Limit', value: job.ageMin ? `${job.ageMin} Years` : '18 Years' },
+          { key: 'Maximum Age Limit', value: job.ageMax ? `${job.ageMax} Years` : '27 to 32 Years (Relaxation as per rules)' },
+        ],
+      },
+      {
+        title: 'Application Fees Structure',
+        rows: [
+          { key: 'General / OBC / EWS Male Candidates', value: job.fee !== undefined ? (job.fee === 0 ? 'Exempted (₹0)' : `₹${job.fee}`) : '₹100' },
+          { key: 'SC / ST Candidates', value: 'Exempted (₹0)' },
+          { key: 'Female Candidates (All Categories)', value: 'Exempted (₹0)' },
+          { key: 'PwD / Divyangjan Candidates', value: 'Exempted (₹0)' },
+          { key: 'Application Correction / Revision Charge', value: '₹200 (1st Revision) / ₹500 (2nd Revision)' },
+        ],
+      },
+      {
+        title: 'Vacancy Details & Post-Wise Eligibility',
+        rows: [
+          { key: 'Cadre / Post Title', value: job.title },
+          { key: 'Essential Educational Qualification', value: job.qualification || 'Higher Secondary (10+2) / Bachelor Degree' },
+          { key: 'Eligible Degree Qualifications', value: Array.isArray(job.eligibleDegrees) && job.eligibleDegrees.length > 0 ? job.eligibleDegrees.join(', ') : 'All recognized Bachelor Degrees / Diplomas' },
+          { key: 'Eligible Branches / Disciplines', value: Array.isArray(job.eligibleBranches) && job.eligibleBranches.length > 0 ? job.eligibleBranches.join(', ') : 'All streams / disciplines' },
+        ],
+      },
+    ];
   };
 
   if (loading) {
@@ -223,58 +285,157 @@ export const JobDetailPage = () => {
         }} className="job-detail-grid">
           {/* Main Specifications Column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-            {/* Vacancy Breakdown & Pay Scale */}
-            <div className="card" style={{ padding: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={18} /> Position Details & Pay Scale
+            {/* Dynamic Specification Tables (Overview, Fees, Vacancies, etc.) */}
+            {getSpecificationTables().map((tbl, tblIdx) => (
+              <div key={tblIdx} className="card" style={{ padding: '1.5rem', backgroundColor: '#FFFFFF' }}>
+                <h3 style={{
+                  fontSize: '1.15rem',
+                  color: 'var(--color-primary)',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <Table size={18} /> {tbl.title || `Specification Table ${tblIdx + 1}`}
+                </h3>
+
+                <div style={{
+                  overflowX: 'auto',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-xs)'
+                }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                    <tbody>
+                      {tbl.rows?.map((row, rIdx) => (
+                        <tr
+                          key={rIdx}
+                          style={{
+                            borderBottom: rIdx === tbl.rows.length - 1 ? 'none' : '1px solid var(--color-border)',
+                            backgroundColor: rIdx % 2 === 0 ? 'var(--color-bg)' : '#FFFFFF'
+                          }}
+                        >
+                          <td style={{
+                            padding: '0.85rem 1.25rem',
+                            fontWeight: 700,
+                            color: 'var(--color-text-title)',
+                            width: '38%',
+                            verticalAlign: 'middle',
+                            borderRight: '1px solid var(--color-border)',
+                            fontSize: '0.88rem'
+                          }}>
+                            {row.key}
+                          </td>
+                          <td style={{
+                            padding: '0.85rem 1.25rem',
+                            color: 'var(--color-text-body)',
+                            lineHeight: 1.5,
+                            fontSize: '0.88rem'
+                          }}>
+                            {row.value}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+
+            {/* Official Notification Description */}
+            <div className="card" style={{ padding: '1.5rem', backgroundColor: '#FFFFFF' }}>
+              <h3 style={{
+                fontSize: '1.15rem',
+                color: 'var(--color-primary)',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <FileText size={18} /> Official Notification Overview & Gazette Details
               </h3>
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '1rem',
+                fontSize: '0.95rem',
+                lineHeight: 1.75,
+                color: 'var(--color-text-body)',
+                whiteSpace: 'pre-line',
                 backgroundColor: 'var(--color-bg)',
                 padding: '1.25rem',
                 borderRadius: 'var(--radius-md)',
-                marginBottom: '1rem'
+                border: '1px solid var(--color-border)'
               }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Advertised Vacancies
-                  </div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-text-title)' }} className="tabular-nums">
-                    {job.vacancies || 'As per notification'}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Pay Matrix / Scale
-                  </div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                    {job.payScale || 'Level 4 to Level 7 (As per 7th CPC)'}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Age Criteria
-                  </div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-title)' }}>
-                    {job.ageLimit || '18 to 30 Years (Category relaxations apply)'}
-                  </div>
-                </div>
+                {job.description || 'Candidates are invited to apply for the advertised post in accordance with the official recruitment circular. Please examine all educational credentials, domicile certificates, and reservation category norms prior to online submission.'}
               </div>
             </div>
 
-            {/* Description & Gazette Criteria */}
-            <div className="card" style={{ padding: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', marginBottom: '1rem' }}>
-                Notification Overview & Duties
-              </h3>
-              <div style={{ fontSize: '0.95rem', lineHeight: 1.7, color: 'var(--color-text-body)', whiteSpace: 'pre-line' }}>
-                {job.description || 'Candidates are invited to apply for the above post in accordance with the official recruitment notice. Please verify all educational credentials, domicile certificates, and category criteria prior to registration.'}
+            {/* Candidate Matcher Criteria (Eligible Degrees & Disciplines) */}
+            {((Array.isArray(job.eligibleDegrees) && job.eligibleDegrees.length > 0) ||
+              (Array.isArray(job.eligibleBranches) && job.eligibleBranches.length > 0)) && (
+              <div className="card" style={{ padding: '1.5rem', backgroundColor: '#FFFFFF' }}>
+                <h3 style={{
+                  fontSize: '1.15rem',
+                  color: 'var(--color-primary)',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <CheckSquare size={18} /> Advertised Eligible Degrees & Disciplines
+                </h3>
+
+                {Array.isArray(job.eligibleDegrees) && job.eligibleDegrees.length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                      Eligible Degree Qualifications
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {job.eligibleDegrees.map((deg, i) => (
+                        <span key={i} style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          backgroundColor: 'var(--color-primary-subtle)',
+                          color: 'var(--color-primary)',
+                          border: '1px solid var(--color-border)',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: 'var(--radius-full)'
+                        }}>
+                          <GraduationCap size={13} /> {deg}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {Array.isArray(job.eligibleBranches) && job.eligibleBranches.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                      Eligible Branches / Specializations
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {job.eligibleBranches.map((br, i) => (
+                        <span key={i} style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          backgroundColor: 'var(--color-accent-subtle)',
+                          color: 'var(--color-accent)',
+                          border: '1px solid var(--color-accent-border)',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: 'var(--radius-full)'
+                        }}>
+                          {br}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Application Stages & Selection Procedure */}
             <div className="card" style={{ padding: '1.5rem' }}>
@@ -365,42 +526,37 @@ export const JobDetailPage = () => {
                     <div style={{ padding: '1rem 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
                       Comparing your profile against gazette criteria...
                     </div>
-                  ) : eligibility ? (
+                  ) : activeEligibility ? (
                     <div>
                       <div style={{
                         padding: '0.75rem 1rem',
                         borderRadius: 'var(--radius-md)',
                         marginBottom: '0.85rem',
-                        backgroundColor: 
-                          eligibility.status === 'LIKELY_ELIGIBLE' ? 'var(--color-accent-subtle)' :
-                          eligibility.status === 'MAY_BE_ELIGIBLE' ? 'var(--color-secondary-subtle)' :
-                          'var(--color-danger-subtle)',
-                        border: 
-                          eligibility.status === 'LIKELY_ELIGIBLE' ? '1px solid var(--color-accent-border)' :
-                          eligibility.status === 'MAY_BE_ELIGIBLE' ? '1px solid var(--color-secondary-border)' :
-                          '1px solid var(--color-danger-border)',
-                        color: 
-                          eligibility.status === 'LIKELY_ELIGIBLE' ? 'var(--color-accent)' :
-                          eligibility.status === 'MAY_BE_ELIGIBLE' ? 'var(--color-secondary)' :
-                          'var(--color-danger)',
+                        backgroundColor: activeEligibility.bgColor,
+                        border: `1px solid ${activeEligibility.borderColor}`,
+                        color: activeEligibility.color,
                         fontWeight: 700,
                         fontSize: '0.9rem',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem'
                       }}>
-                        {eligibility.status === 'LIKELY_ELIGIBLE' && <CheckCircle2 size={18} />}
-                        {eligibility.status === 'MAY_BE_ELIGIBLE' && <AlertCircle size={18} />}
-                        {eligibility.status === 'LIKELY_NOT_ELIGIBLE' && <AlertCircle size={18} />}
-                        <span>
-                          {eligibility.status === 'LIKELY_ELIGIBLE' ? 'Likely Eligible' :
-                           eligibility.status === 'MAY_BE_ELIGIBLE' ? 'May Be Eligible' :
-                           'Likely Not Eligible'}
-                        </span>
+                        {activeEligibility.status === ELIGIBILITY_STATUS.LIKELY_ELIGIBLE && <CheckCircle2 size={18} />}
+                        {activeEligibility.status === ELIGIBILITY_STATUS.MAY_BE_ELIGIBLE && <AlertCircle size={18} />}
+                        {activeEligibility.status === ELIGIBILITY_STATUS.LIKELY_NOT_ELIGIBLE && <XCircle size={18} />}
+                        <span>{activeEligibility.label}</span>
                       </div>
-                      <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                        {eligibility.reason || 'Criteria evaluated based on your profile age, category relaxation, and educational background.'}
-                      </p>
+
+                      {activeEligibility.reasons?.length > 0 && (
+                        <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          {activeEligibility.reasons.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.35rem' }}>
+                              <span style={{ color: activeEligibility.color, fontWeight: 700 }}>•</span>
+                              <span>{r}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>

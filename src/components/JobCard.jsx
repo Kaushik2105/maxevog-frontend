@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, MapPin, GraduationCap, Users, Calendar, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Building2, MapPin, GraduationCap, Users, Calendar, ArrowRight, Sparkles, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
 import { CountdownTimer } from './CountdownTimer';
 import { useAuth } from '../context/AuthContext';
+import { evaluateCandidateEligibility, ELIGIBILITY_STATUS } from '../utils/eligibility';
 
 export const JobCard = ({ job }) => {
   const navigate = useNavigate();
@@ -17,49 +18,7 @@ export const JobCard = ({ job }) => {
   };
 
   // Evaluate candidate eligibility against job specifications
-  const candidateDegree = user?.profile?.qualification || user?.qualification || '';
-  const candidateBranch = user?.profile?.branch || user?.branch || '';
-
-  const checkEligibility = () => {
-    if (!isAuthenticated || !candidateDegree || isAdmin || isAgent) return null;
-
-    if (job.eligibility?.status === 'LIKELY_ELIGIBLE' || job.eligibility?.isEligible) {
-      return { eligible: true, label: 'Eligible for You' };
-    }
-
-    const normJobQual = (job.qualification || '').toLowerCase();
-    const normCandDegree = candidateDegree.toLowerCase();
-    const normCandBranch = candidateBranch.toLowerCase();
-    const normJobDesc = `${job.title || ''} ${job.description || ''} ${job.department || ''}`.toLowerCase();
-
-    // Check Any Graduate / All Discipline
-    const isAnyGraduate = normJobQual.includes('any graduate') || 
-                          normJobQual.includes('any degree') || 
-                          normJobQual.includes('graduation') || 
-                          normJobQual === 'graduate';
-
-    const degreeMatches = isAnyGraduate || 
-                          normJobQual.includes(normCandDegree) || 
-                          normCandDegree.includes(normJobQual);
-
-    if (!degreeMatches) return null;
-
-    // Check branch requirements if specific branch mentioned
-    let branchMatches = true;
-    const mentionsBranchKeywords = normJobQual.includes('civil') || normJobQual.includes('electrical') ||
-      normJobQual.includes('mechanical') || normJobQual.includes('computer') || normJobQual.includes('it');
-    
-    if (mentionsBranchKeywords && normCandBranch && normCandBranch !== 'other') {
-      branchMatches = normJobQual.includes(normCandBranch) || normJobDesc.includes(normCandBranch);
-    }
-
-    if (degreeMatches && branchMatches) {
-      return { eligible: true, label: `Eligible: ${candidateDegree}` };
-    }
-    return null;
-  };
-
-  const matchInfo = checkEligibility();
+  const matchInfo = isAuthenticated ? evaluateCandidateEligibility(user, job) : null;
 
   const handleApplyAssisted = (e) => {
     if (!isAuthenticated) {
@@ -107,20 +66,23 @@ export const JobCard = ({ job }) => {
               {job.organization || 'Public Commission'}
             </span>
 
-            {matchInfo?.eligible && (
+            {matchInfo && (
               <span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.25rem',
                 fontSize: '0.72rem',
                 fontWeight: 700,
-                color: 'var(--color-accent)',
-                backgroundColor: 'var(--color-accent-subtle)',
-                border: '1px solid var(--color-accent-border)',
+                color: matchInfo.color,
+                backgroundColor: matchInfo.bgColor,
+                border: `1px solid ${matchInfo.borderColor}`,
                 padding: '0.2rem 0.55rem',
                 borderRadius: 'var(--radius-full)'
               }}>
-                <CheckCircle2 size={12} /> {matchInfo.label}
+                {matchInfo.status === ELIGIBILITY_STATUS.LIKELY_ELIGIBLE && <CheckCircle2 size={12} />}
+                {matchInfo.status === ELIGIBILITY_STATUS.MAY_BE_ELIGIBLE && <AlertCircle size={12} />}
+                {matchInfo.status === ELIGIBILITY_STATUS.LIKELY_NOT_ELIGIBLE && <XCircle size={12} />}
+                <span>{matchInfo.label}</span>
               </span>
             )}
           </div>

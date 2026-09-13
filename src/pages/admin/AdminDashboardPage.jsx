@@ -23,9 +23,60 @@ import {
   Trash2,
   Calendar,
   Layers,
-  Lock
+  Lock,
+  Table,
+  CheckSquare,
+  Square,
+  X
 } from 'lucide-react';
 import { Modal } from '../../components/Modal';
+
+const STANDARD_MATCHER_DEGREES = [
+  'Any Graduate',
+  'B.Tech / B.E. (Bachelor of Technology / Engineering)',
+  'B.Sc (Bachelor of Science)',
+  'B.Com (Bachelor of Commerce)',
+  'B.A. (Bachelor of Arts)',
+  'BCA (Bachelor of Computer Applications)',
+  'MCA (Master of Computer Applications)',
+  'M.Tech / M.E. (Master of Technology / Engineering)',
+  'MBA (Master of Business Administration)',
+  'M.Sc (Master of Science)',
+  'M.Com (Master of Commerce)',
+  'M.A. (Master of Arts)',
+  'MBBS (Bachelor of Medicine & Surgery)',
+  'BDS (Dental Surgery)',
+  'B.Pharm (Bachelor of Pharmacy)',
+  'B.Ed (Bachelor of Education)',
+  'LLB (Bachelor of Legislative Law)',
+  'Diploma (Polytechnic / Technical)',
+  '12th / Intermediate (Higher Secondary)',
+  '10th (Matriculation)',
+  'Others',
+];
+
+const STANDARD_MATCHER_BRANCHES = [
+  'Any Branch / All Disciplines',
+  'Computer Science & Engineering (CSE)',
+  'Information Technology (IT)',
+  'Mechanical Engineering',
+  'Civil Engineering',
+  'Electrical Engineering',
+  'Electronics & Communication (ECE)',
+  'Data Science & Artificial Intelligence',
+  'Chemical Engineering',
+  'Commerce / Accounting / Finance',
+  'Economics',
+  'Arts / Humanities / Social Sciences',
+  'Physics / Chemistry / Mathematics (PCM)',
+  'Biology / Life Sciences / Biotechnology',
+  'General Medicine / Clinical Practice',
+  'Nursing & Paramedical Sciences',
+  'Pharmacy / Pharmacology',
+  'Law & Jurisprudence',
+  'General / Non-Technical Stream',
+  'Others',
+];
 
 export const AdminDashboardPage = () => {
   const { user, isAdmin } = useAuth();
@@ -67,7 +118,10 @@ export const AdminDashboardPage = () => {
     lastDate: '',
     fee: 100,
     officialUrl: '',
-    description: ''
+    description: '',
+    tables: [],
+    eligibleDegrees: [],
+    eligibleBranches: [],
   });
 
   const [showResultModal, setShowResultModal] = useState(false);
@@ -171,10 +225,131 @@ export const AdminDashboardPage = () => {
     }
   };
 
+  const addPresetTable = (presetType) => {
+    let newTable = null;
+    if (presetType === 'OVERVIEW') {
+      newTable = {
+        title: 'Recruitment Overview',
+        rows: [
+          { key: 'Authority / Commission', value: newJob.organization || 'Staff Selection Commission' },
+          { key: 'Exam / Recruitment Name', value: newJob.title || '' },
+          { key: 'Total Vacancies', value: newJob.vacancies ? `${newJob.vacancies} Posts` : 'TBA' },
+          { key: 'Application Last Date', value: newJob.lastDate || '' },
+          { key: 'Minimum Age Limit', value: '18 Years' },
+          { key: 'Maximum Age Limit', value: '27 - 30 Years (Category relaxations applicable)' },
+        ],
+      };
+    } else if (presetType === 'FEES') {
+      newTable = {
+        title: 'Application Examination Fees',
+        rows: [
+          { key: 'General / OBC / EWS', value: `₹${newJob.fee || 100}` },
+          { key: 'SC / ST / PwD Candidates', value: '₹0 (Exempted)' },
+          { key: 'Female Candidates (All Categories)', value: '₹0 (Exempted)' },
+          { key: 'Correction Charge (1st Time)', value: '₹200' },
+          { key: 'Correction Charge (2nd Time)', value: '₹500' },
+          { key: 'Fee Payment Mode', value: 'Online via Net Banking, UPI, Debit / Credit Card' },
+        ],
+      };
+    } else if (presetType === 'VACANCIES') {
+      newTable = {
+        title: 'Post Wise Vacancy & Eligibility Details',
+        rows: [
+          { key: 'Post Designation / Cadre', value: newJob.title || 'General Post' },
+          { key: 'Total Vacancy Count', value: newJob.vacancies ? `${newJob.vacancies} Posts` : 'As per official notification' },
+          { key: 'Educational Eligibility', value: newJob.qualification || 'Graduation in any stream from recognized university' },
+        ],
+      };
+    } else {
+      newTable = {
+        title: 'Custom Details Table',
+        rows: [{ key: '', value: '' }],
+      };
+    }
+    setNewJob((prev) => ({
+      ...prev,
+      tables: [...(prev.tables || []), newTable],
+    }));
+  };
+
+  const updateTableTitle = (tableIdx, title) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      updated[tableIdx] = { ...updated[tableIdx], title };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const addTableRow = (tableIdx) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      updated[tableIdx] = {
+        ...updated[tableIdx],
+        rows: [...(updated[tableIdx].rows || []), { key: '', value: '' }],
+      };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const updateTableRow = (tableIdx, rowIdx, field, val) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      const rows = [...(updated[tableIdx].rows || [])];
+      rows[rowIdx] = { ...rows[rowIdx], [field]: val };
+      updated[tableIdx] = { ...updated[tableIdx], rows };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const removeTableRow = (tableIdx, rowIdx) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      const rows = updated[tableIdx].rows.filter((_, idx) => idx !== rowIdx);
+      updated[tableIdx] = { ...updated[tableIdx], rows };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const removeTable = (tableIdx) => {
+    setNewJob((prev) => ({
+      ...prev,
+      tables: (prev.tables || []).filter((_, idx) => idx !== tableIdx),
+    }));
+  };
+
+  const toggleDegreeMatch = (degree) => {
+    setNewJob((prev) => {
+      const current = prev.eligibleDegrees || [];
+      const exists = current.includes(degree);
+      return {
+        ...prev,
+        eligibleDegrees: exists ? current.filter((d) => d !== degree) : [...current, degree],
+      };
+    });
+  };
+
+  const toggleBranchMatch = (branch) => {
+    setNewJob((prev) => {
+      const current = prev.eligibleBranches || [];
+      const exists = current.includes(branch);
+      return {
+        ...prev,
+        eligibleBranches: exists ? current.filter((b) => b !== branch) : [...current, branch],
+      };
+    });
+  };
+
   const handleCreateJob = async (e) => {
     e.preventDefault();
     try {
-      const res = await adminApi.createJob(newJob);
+      const payload = {
+        ...newJob,
+        applicationLastDate: newJob.lastDate,
+        applicationFee: Number(newJob.fee) || 0,
+        officialApplicationUrl: newJob.officialUrl,
+        officialNotificationUrl: newJob.officialUrl,
+      };
+      const res = await adminApi.createJob(payload);
       if (res.data?.success) {
         setNotification('Official recruitment notice published successfully!');
         setShowJobModal(false);
@@ -188,12 +363,19 @@ export const AdminDashboardPage = () => {
           lastDate: '',
           fee: 100,
           officialUrl: '',
-          description: ''
+          description: '',
+          tables: [],
+          eligibleDegrees: [],
+          eligibleBranches: [],
         });
         loadTabData();
       }
     } catch (err) {
-      alert('Failed to create job');
+      const errMsg =
+        err.response?.data?.errors?.map((e) => `${e.field || ''}: ${e.message}`).join(', ') ||
+        err.response?.data?.message ||
+        'Failed to create recruitment notice';
+      alert(`Error creating job: ${errMsg}`);
     }
   };
 
@@ -1001,16 +1183,16 @@ export const AdminDashboardPage = () => {
           isOpen={showJobModal}
           onClose={() => setShowJobModal(false)}
           title="Publish Official Recruitment Notice"
-          maxWidth="640px"
+          maxWidth="900px"
         >
-          <form onSubmit={handleCreateJob}>
+          <form onSubmit={handleCreateJob} style={{ maxHeight: '78vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="modal-grid">
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="form-label">Recruitment Post Title</label>
+                <label className="form-label">Recruitment Post Title *</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="e.g. Combined Graduate Level Examination 2026"
+                  placeholder="e.g. SSC 10+2 CHSL Recruitment 2026 for 2536 Post"
                   value={newJob.title}
                   onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
                   required
@@ -1018,7 +1200,7 @@ export const AdminDashboardPage = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Authority / Commission</label>
+                <label className="form-label">Authority / Commission *</label>
                 <input
                   type="text"
                   className="form-control"
@@ -1030,18 +1212,18 @@ export const AdminDashboardPage = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Department</label>
+                <label className="form-label">Department / Office</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="e.g. Department of Personnel"
+                  placeholder="e.g. Constitutional Bodies & Government Offices"
                   value={newJob.department}
                   onChange={(e) => setNewJob({ ...newJob, department: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Sector</label>
+                <label className="form-label">Sector / Category</label>
                 <select
                   className="form-control form-select"
                   value={newJob.category}
@@ -1056,18 +1238,29 @@ export const AdminDashboardPage = () => {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Primary Qualification</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. 12th Pass / Graduate"
+                  value={newJob.qualification}
+                  onChange={(e) => setNewJob({ ...newJob, qualification: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Total Vacancies</label>
                 <input
                   type="number"
                   className="form-control"
-                  placeholder="e.g. 17727"
+                  placeholder="e.g. 2536"
                   value={newJob.vacancies}
                   onChange={(e) => setNewJob({ ...newJob, vacancies: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Last Date to Apply</label>
+                <label className="form-label">Application Last Date *</label>
                 <input
                   type="date"
                   className="form-control"
@@ -1087,8 +1280,8 @@ export const AdminDashboardPage = () => {
                 />
               </div>
 
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="form-label">Official Gazette / Board Portal URL</label>
+              <div className="form-group">
+                <label className="form-label">Official Gazette / Portal URL</label>
                 <input
                   type="url"
                   className="form-control"
@@ -1097,14 +1290,214 @@ export const AdminDashboardPage = () => {
                   onChange={(e) => setNewJob({ ...newJob, officialUrl: e.target.value })}
                 />
               </div>
+
+              {/* Notification Description Input */}
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Official Notification Description / Summary</label>
+                <textarea
+                  className="form-control"
+                  rows={4}
+                  placeholder="Enter detailed notification summary, syllabus notes, or official gazette circular..."
+                  value={newJob.description}
+                  onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            {/* SECTION: SPECIFICATION TABLES BUILDER */}
+            <div style={{ marginTop: '2rem', padding: '1.25rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Table size={16} /> Specification Tables (Overview, Fees, Vacancies & Details)
+                  </h4>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                    Create structured key-value tables displayed on the candidate job specs page.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => addPresetTable('OVERVIEW')} className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                    + Overview Table
+                  </button>
+                  <button type="button" onClick={() => addPresetTable('FEES')} className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                    + Fee Table
+                  </button>
+                  <button type="button" onClick={() => addPresetTable('VACANCIES')} className="btn btn-outline btn-sm" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                    + Vacancy Details Table
+                  </button>
+                  <button type="button" onClick={() => addPresetTable('CUSTOM')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}>
+                    + Custom Table
+                  </button>
+                </div>
+              </div>
+
+              {(!newJob.tables || newJob.tables.length === 0) ? (
+                <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#FFFFFF', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                  No specification tables created yet. Click any button above to generate a structured table (Overview, Fees, Vacancy, or Custom).
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {newJob.tables.map((tbl, tblIdx) => (
+                    <div key={tblIdx} style={{ backgroundColor: '#FFFFFF', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-xs)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>Table {tblIdx + 1}:</span>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={tbl.title}
+                            onChange={(e) => updateTableTitle(tblIdx, e.target.value)}
+                            placeholder="e.g. Overview / Application Fees / Vacancy Details"
+                            style={{ fontWeight: 600, fontSize: '0.88rem', height: '2rem' }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeTable(tblIdx)}
+                          className="btn btn-outline btn-sm"
+                          style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger-border)', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                        >
+                          <Trash2 size={13} /> Delete Table
+                        </button>
+                      </div>
+
+                      {/* Rows container */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {tbl.rows?.map((row, rowIdx) => (
+                          <div key={rowIdx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Key (e.g. Exam Name / Fee / Minimum Age)"
+                              value={row.key}
+                              onChange={(e) => updateTableRow(tblIdx, rowIdx, 'key', e.target.value)}
+                              style={{ flex: 1, fontSize: '0.82rem' }}
+                            />
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Value (e.g. SSC CHSL / ₹100 / 18 Years)"
+                              value={row.value}
+                              onChange={(e) => updateTableRow(tblIdx, rowIdx, 'value', e.target.value)}
+                              style={{ flex: 1.5, fontSize: '0.82rem' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeTableRow(tblIdx, rowIdx)}
+                              className="btn btn-outline btn-sm"
+                              style={{ padding: '0.35rem 0.5rem', color: 'var(--color-text-muted)' }}
+                              title="Delete Row"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => addTableRow(tblIdx)}
+                        className="btn btn-outline btn-sm"
+                        style={{ marginTop: '0.75rem', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                      >
+                        <Plus size={13} /> Add Row
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* SECTION: CANDIDATE JOB MATCHER (ELIGIBILITY ENGINE) */}
+            <div style={{ marginTop: '1.5rem', padding: '1.25rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <CheckSquare size={16} /> Candidate Job Matcher (Eligibility Criteria)
+                </h4>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  Select eligible degrees and branches. Candidates matching these will see "Likely Eligible" or "May Be Eligible / Needs Review" tags.
+                </div>
+              </div>
+
+              {/* Degrees Grid */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-title)' }}>
+                    Eligible Degree / Certificate Titles:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all = STANDARD_MATCHER_DEGREES;
+                      const isAll = (newJob.eligibleDegrees || []).length === all.length;
+                      setNewJob((p) => ({ ...p, eligibleDegrees: isAll ? [] : all }));
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    {(newJob.eligibleDegrees || []).length === STANDARD_MATCHER_DEGREES.length ? 'Deselect All' : 'Select All Degrees'}
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#FFFFFF', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                  {STANDARD_MATCHER_DEGREES.map((deg) => {
+                    const checked = (newJob.eligibleDegrees || []).includes(deg);
+                    return (
+                      <label key={deg} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', color: checked ? 'var(--color-primary)' : 'var(--color-text-body)', fontWeight: checked ? 600 : 400 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleDegreeMatch(deg)}
+                        />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deg}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Branches Grid */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-title)' }}>
+                    Eligible Major Branches / Specializations:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all = STANDARD_MATCHER_BRANCHES;
+                      const isAll = (newJob.eligibleBranches || []).length === all.length;
+                      setNewJob((p) => ({ ...p, eligibleBranches: isAll ? [] : all }));
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    {(newJob.eligibleBranches || []).length === STANDARD_MATCHER_BRANCHES.length ? 'Deselect All' : 'Select All Branches'}
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#FFFFFF', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                  {STANDARD_MATCHER_BRANCHES.map((br) => {
+                    const checked = (newJob.eligibleBranches || []).includes(br);
+                    return (
+                      <label key={br} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', color: checked ? 'var(--color-primary)' : 'var(--color-text-body)', fontWeight: checked ? 600 : 400 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleBranchMatch(br)}
+                        />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{br}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
               <button type="button" onClick={() => setShowJobModal(false)} className="btn btn-outline">
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                Publish Notice
+                Publish Recruitment & Specs
               </button>
             </div>
           </form>
