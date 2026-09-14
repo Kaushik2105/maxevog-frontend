@@ -27,7 +27,10 @@ import {
   Table,
   CheckSquare,
   Square,
-  X
+  X,
+  Edit,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Modal } from '../../components/Modal';
 
@@ -92,6 +95,7 @@ export const AdminDashboardPage = () => {
   const [financials, setFinancials] = useState(null);
   const [feedbacks, setFeedbacks] = useState([]);
   const [agentsList, setAgentsList] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Search & Filter State
@@ -108,6 +112,8 @@ export const AdminDashboardPage = () => {
   });
   const [agentSubmitting, setAgentSubmitting] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
+  const [isEditingJob, setIsEditingJob] = useState(false);
+  const [editingJobId, setEditingJobId] = useState(null);
   const [newJob, setNewJob] = useState({
     title: '',
     organization: '',
@@ -177,7 +183,7 @@ export const AdminDashboardPage = () => {
           setApplications(res.data.data.applications || []);
         }
       } else if (activeTab === 'recruitments') {
-        const res = await jobsApi.getJobs({ limit: 100 });
+        const res = await adminApi.getJobs({ limit: 100 });
         if (res.data?.success) {
           setJobs(res.data.data.jobs || res.data.data || []);
         }
@@ -205,6 +211,11 @@ export const AdminDashboardPage = () => {
         const res = await adminApi.getAgents();
         if (res.data?.success) {
           setAgentsList(res.data.data.agents || []);
+        }
+      } else if (activeTab === 'audit') {
+        const res = await adminApi.getAuditLogs({ limit: 100 });
+        if (res.data?.success) {
+          setAuditLogs(res.data.data.logs || []);
         }
       }
     } catch (err) {
@@ -339,7 +350,98 @@ export const AdminDashboardPage = () => {
     });
   };
 
-  const handleCreateJob = async (e) => {
+  const handleOpenCreateJob = () => {
+    setIsEditingJob(false);
+    setEditingJobId(null);
+    setNewJob({
+      title: '',
+      organization: '',
+      department: '',
+      category: 'Central',
+      qualification: 'Graduate',
+      vacancies: '',
+      lastDate: '',
+      fee: 100,
+      officialUrl: '',
+      description: '',
+      tables: [],
+      eligibleDegrees: [],
+      eligibleBranches: [],
+    });
+    setShowJobModal(true);
+  };
+
+  const handleOpenEditJob = (job) => {
+    setIsEditingJob(true);
+    setEditingJobId(job.id);
+    let parsedTables = [];
+    if (Array.isArray(job.tables)) {
+      parsedTables = job.tables;
+    } else if (typeof job.tables === 'string') {
+      try {
+        parsedTables = JSON.parse(job.tables);
+      } catch {
+        parsedTables = [];
+      }
+    }
+
+    let parsedDegrees = [];
+    if (Array.isArray(job.eligibleDegrees)) {
+      parsedDegrees = job.eligibleDegrees;
+    } else if (typeof job.eligibleDegrees === 'string') {
+      try {
+        parsedDegrees = JSON.parse(job.eligibleDegrees);
+      } catch {
+        parsedDegrees = [];
+      }
+    }
+
+    let parsedBranches = [];
+    if (Array.isArray(job.eligibleBranches)) {
+      parsedBranches = job.eligibleBranches;
+    } else if (typeof job.eligibleBranches === 'string') {
+      try {
+        parsedBranches = JSON.parse(job.eligibleBranches);
+      } catch {
+        parsedBranches = [];
+      }
+    }
+
+    const lastDateStr = job.applicationLastDate
+      ? new Date(job.applicationLastDate).toISOString().split('T')[0]
+      : job.lastDate
+      ? new Date(job.lastDate).toISOString().split('T')[0]
+      : '';
+
+    setNewJob({
+      title: job.title || '',
+      organization: job.organization || '',
+      department: job.department || '',
+      category: job.category || 'Central',
+      qualification: job.qualification || 'Graduate',
+      vacancies: job.vacancies !== undefined ? job.vacancies : '',
+      lastDate: lastDateStr,
+      fee: job.applicationFee !== undefined ? job.applicationFee : (job.fee !== undefined ? job.fee : 100),
+      officialUrl: job.officialApplicationUrl || job.officialNotificationUrl || job.officialUrl || '',
+      description: job.description || '',
+      tables: parsedTables,
+      eligibleDegrees: parsedDegrees,
+      eligibleBranches: parsedBranches,
+    });
+    setShowJobModal(true);
+  };
+
+  const handleToggleJobPublish = async (jobId, currentPublished) => {
+    try {
+      await adminApi.updateJob(jobId, { isPublished: !currentPublished });
+      setNotification(`Recruitment notice status updated to ${!currentPublished ? 'Published' : 'Draft'}.`);
+      loadTabData();
+    } catch (err) {
+      alert('Failed to update recruitment publication status');
+    }
+  };
+
+  const handleSaveJob = async (e) => {
     e.preventDefault();
     try {
       const payload = {
@@ -349,10 +451,23 @@ export const AdminDashboardPage = () => {
         officialApplicationUrl: newJob.officialUrl,
         officialNotificationUrl: newJob.officialUrl,
       };
-      const res = await adminApi.createJob(payload);
+
+      let res;
+      if (isEditingJob && editingJobId) {
+        res = await adminApi.updateJob(editingJobId, payload);
+      } else {
+        res = await adminApi.createJob(payload);
+      }
+
       if (res.data?.success) {
-        setNotification('Official recruitment notice published successfully!');
+        setNotification(
+          isEditingJob
+            ? 'Official recruitment notice updated successfully!'
+            : 'Official recruitment notice published successfully!'
+        );
         setShowJobModal(false);
+        setIsEditingJob(false);
+        setEditingJobId(null);
         setNewJob({
           title: '',
           organization: '',
@@ -374,10 +489,11 @@ export const AdminDashboardPage = () => {
       const errMsg =
         err.response?.data?.errors?.map((e) => `${e.field || ''}: ${e.message}`).join(', ') ||
         err.response?.data?.message ||
-        'Failed to create recruitment notice';
-      alert(`Error creating job: ${errMsg}`);
+        'Failed to save recruitment notice';
+      alert(`Error saving job: ${errMsg}`);
     }
   };
+  const handleCreateJob = handleSaveJob;
 
   const handleDeleteJob = async (jobId) => {
     if (!window.confirm('Are you sure you want to delete this recruitment notice?')) return;
@@ -489,7 +605,7 @@ export const AdminDashboardPage = () => {
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
-              onClick={() => setShowJobModal(true)}
+              onClick={handleOpenCreateJob}
               className="btn btn-primary btn-sm"
             >
               <Plus size={15} /> Publish Recruitment
@@ -558,6 +674,7 @@ export const AdminDashboardPage = () => {
             { key: 'users', label: 'Candidate Accounts', icon: Users },
             { key: 'financials', label: 'Financials & Revenue', icon: IndianRupee },
             { key: 'feedback', label: 'Grievance Desk', icon: MessageSquare },
+            { key: 'audit', label: 'System Audit Logs', icon: ShieldCheck },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.key;
@@ -600,10 +717,10 @@ export const AdminDashboardPage = () => {
                   <Users size={18} color="var(--color-primary)" />
                 </div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-text-title)' }} className="tabular-nums">
-                  {stats?.totalUsers || 0}
+                  {stats?.totalUsers ?? stats?.users?.total ?? 0}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-accent)', fontWeight: 600, marginTop: '0.2rem' }}>
-                  +{stats?.newUsersThisMonth || 0} enrolled this month
+                  +{stats?.newUsersThisMonth ?? stats?.users?.newThisMonth ?? 0} enrolled this month
                 </div>
               </div>
 
@@ -613,7 +730,7 @@ export const AdminDashboardPage = () => {
                   <Briefcase size={18} color="var(--color-secondary)" />
                 </div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-secondary)' }} className="tabular-nums">
-                  {stats?.activeJobs || 0}
+                  {stats?.activeJobs ?? stats?.jobs?.active ?? 0}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 600, marginTop: '0.2rem' }}>
                   Live Gazette Openings
@@ -626,7 +743,7 @@ export const AdminDashboardPage = () => {
                   <Video size={18} color="var(--color-accent)" />
                 </div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-accent)' }} className="tabular-nums">
-                  {stats?.totalAssistanceSessions || 0}
+                  {stats?.totalAssistanceSessions ?? stats?.assistance?.total ?? 0}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-accent)', fontWeight: 600, marginTop: '0.2rem' }}>
                   1-on-1 Guided Sessions
@@ -639,10 +756,10 @@ export const AdminDashboardPage = () => {
                   <IndianRupee size={18} color="#9333EA" />
                 </div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-text-title)' }} className="tabular-nums">
-                  ₹{(stats?.totalRevenue || 0).toLocaleString('en-IN')}
+                  ₹{(stats?.totalRevenue ?? stats?.revenue?.total ?? 0).toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#9333EA', fontWeight: 600, marginTop: '0.2rem' }}>
-                  {stats?.activePaidMembers || 0} Active Pro Passes (₹99 / 3 Mo)
+                  {stats?.activePaidMembers ?? stats?.memberships?.active ?? 0} Active Pro Passes (₹99 / 3 Mo)
                 </div>
               </div>
             </div>
@@ -772,7 +889,7 @@ export const AdminDashboardPage = () => {
               </div>
 
               <button
-                onClick={() => setShowJobModal(true)}
+                onClick={handleOpenCreateJob}
                 className="btn btn-primary btn-sm"
               >
                 <Plus size={15} /> Add New Vacancy Notice
@@ -794,6 +911,7 @@ export const AdminDashboardPage = () => {
                       <th style={{ padding: '0.75rem 0.5rem' }}>Vacancies</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Last Date</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Fee</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
                       <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
@@ -809,18 +927,44 @@ export const AdminDashboardPage = () => {
                           {job.vacancies ? job.vacancies.toLocaleString('en-IN') : 'N/A'}
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-secondary)', fontWeight: 600 }}>
-                          {job.lastDate ? new Date(job.lastDate).toLocaleDateString('en-IN') : 'TBA'}
+                          {job.applicationLastDate
+                            ? new Date(job.applicationLastDate).toLocaleDateString('en-IN')
+                            : job.lastDate
+                            ? new Date(job.lastDate).toLocaleDateString('en-IN')
+                            : 'TBA'}
                         </td>
-                        <td style={{ padding: '0.75rem 0.5rem' }}>₹{job.fee}</td>
-                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>₹{job.applicationFee ?? job.fee ?? 0}</td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
                           <button
-                            onClick={() => handleDeleteJob(job.id)}
-                            className="btn btn-outline btn-sm"
-                            style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger-border)' }}
-                            title="Delete Notice"
+                            type="button"
+                            onClick={() => handleToggleJobPublish(job.id, job.isPublished !== false)}
+                            className={`badge ${job.isPublished !== false ? 'badge-official' : 'badge-neutral'}`}
+                            style={{ cursor: 'pointer', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                            title="Click to toggle publish status"
                           >
-                            <Trash2 size={14} />
+                            {job.isPublished !== false ? <Eye size={12} /> : <EyeOff size={12} />}
+                            <span>{job.isPublished !== false ? 'Published' : 'Draft'}</span>
                           </button>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => handleOpenEditJob(job)}
+                              className="btn btn-outline btn-sm"
+                              style={{ color: 'var(--color-primary)', borderColor: 'var(--color-border)' }}
+                              title="Edit Notice & Specifications"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteJob(job.id)}
+                              className="btn btn-outline btn-sm"
+                              style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger-border)' }}
+                              title="Delete Notice"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1178,14 +1322,85 @@ export const AdminDashboardPage = () => {
           </div>
         )}
 
-        {/* MODAL: PUBLISH JOB */}
+        {/* TAB 8: SYSTEM AUDIT LOGS */}
+        {activeTab === 'audit' && (
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', margin: 0 }}>
+                  System Audit Ledger & Governance History
+                </h3>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                  Immutable record of administrative, recruitment, application, and financial activities.
+                </div>
+              </div>
+              <button onClick={() => loadTabData()} className="btn btn-outline btn-sm">
+                Refresh Logs
+              </button>
+            </div>
+
+            {auditLogs.length === 0 ? (
+              <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
+                No audit entries recorded yet.
+              </p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Timestamp</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Action Event</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Entity / Target</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Actor</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Metadata / Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap', color: 'var(--color-text-muted)' }}>
+                          {new Date(log.createdAt).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                            {log.action}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
+                          {log.entityType} {log.entityId ? <span style={{ color: 'var(--color-text-muted)', fontWeight: 400, fontSize: '0.78rem' }}>#{log.entityId.slice(0, 8)}</span> : ''}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <span className={`badge ${log.actorRole === 'ADMIN' ? 'badge-urgent' : 'badge-neutral'}`}>
+                            {log.actorRole || 'SYSTEM'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+                          {log.metadata ? (typeof log.metadata === 'object' ? JSON.stringify(log.metadata) : String(log.metadata)) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODAL: PUBLISH / EDIT JOB */}
         <Modal
           isOpen={showJobModal}
           onClose={() => setShowJobModal(false)}
-          title="Publish Official Recruitment Notice"
+          title={isEditingJob ? 'Edit Recruitment Notice & Specifications' : 'Publish Official Recruitment Notice'}
           maxWidth="900px"
         >
-          <form onSubmit={handleCreateJob} style={{ maxHeight: '78vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+          <form onSubmit={handleSaveJob} style={{ maxHeight: '78vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="modal-grid">
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="form-label">Recruitment Post Title *</label>
@@ -1497,7 +1712,7 @@ export const AdminDashboardPage = () => {
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                Publish Recruitment & Specs
+                {isEditingJob ? 'Save Changes' : 'Publish Recruitment & Specs'}
               </button>
             </div>
           </form>

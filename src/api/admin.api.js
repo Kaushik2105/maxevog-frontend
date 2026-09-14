@@ -11,6 +11,7 @@ export const adminApi = {
   updateUserStatus: (id, status) => apiClient.patch(`/admin/users/${id}/status`, { status }),
 
   // Recruitment Jobs
+  getJobs: (params) => apiClient.get('/admin/jobs', { params }),
   createJob: (data) => apiClient.post('/admin/jobs', data),
   updateJob: (id, data) => apiClient.put(`/admin/jobs/${id}`, data),
   deleteJob: (id) => apiClient.delete(`/admin/jobs/${id}`),

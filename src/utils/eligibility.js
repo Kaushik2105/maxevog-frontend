@@ -155,41 +155,64 @@ export function evaluateCandidateEligibility(user, job) {
       });
     }
 
-    if (degreeMatched) {
-      clearMatches++;
-      reasons.push(`Degree "${candidateDegree || 'Graduation'}" matches recruitment requirements.`);
+    // Branch Check
+    let branchMatched = false;
+    if (
+      eligibleBranches.length === 0 ||
+      eligibleBranches.some((b) => {
+        const bLower = b.toLowerCase();
+        return bLower.includes('any') || bLower.includes('all') || bLower.includes('general');
+      })
+    ) {
+      branchMatched = true;
+    } else if (candidateBranch) {
+      const candBranchLower = candidateBranch.toLowerCase();
+      branchMatched = eligibleBranches.some((b) => {
+        const bLower = b.toLowerCase();
+        return bLower.includes(candBranchLower) || candBranchLower.includes(bLower);
+      });
+    }
 
-      // Branch Check
-      let branchMatched = false;
-      if (
-        eligibleBranches.length === 0 ||
-        eligibleBranches.some((b) => {
-          const bLower = b.toLowerCase();
-          return bLower.includes('any') || bLower.includes('all') || bLower.includes('general');
-        })
-      ) {
-        branchMatched = true;
-      } else if (candidateBranch) {
-        const candBranchLower = candidateBranch.toLowerCase();
-        branchMatched = eligibleBranches.some((b) => {
-          const bLower = b.toLowerCase();
-          return bLower.includes(candBranchLower) || candBranchLower.includes(bLower);
-        });
-      }
-
-      if (branchMatched) {
-        clearMatches++;
-        reasons.push(`Specialization "${candidateBranch || 'General'}" satisfies board criteria.`);
-      } else if (!candidateBranch || candidateBranch === 'Others') {
-        uncertainMatches++;
-        reasons.push('Branch specialization may require equivalency verification.');
-      } else {
-        uncertainMatches++;
-        reasons.push(`Specific branch "${candidateBranch}" requires gazette equivalency review.`);
-      }
+    // User's Deterministic Decision Rules:
+    // 1. Both degree & branch match -> Likely Eligible
+    // 2. Only one matches (or one is missing) -> May Be Eligible / Needs Review
+    // 3. Neither matches -> Likely Not Eligible
+    if (degreeMatched && branchMatched) {
+      return {
+        status: ELIGIBILITY_STATUS.LIKELY_ELIGIBLE,
+        label: 'Likely Eligible',
+        color: '#059669',
+        bgColor: '#ECFDF5',
+        borderColor: '#A7F3D0',
+        reasons: ['Degree & Specialization match advertised recruitment criteria.'],
+      };
+    } else if (degreeMatched && !branchMatched) {
+      return {
+        status: ELIGIBILITY_STATUS.MAY_BE_ELIGIBLE,
+        label: 'May Be Eligible / Needs Review',
+        color: '#D97706',
+        bgColor: '#FFFBEB',
+        borderColor: '#FDE68A',
+        reasons: [`Degree matches, but branch specialization (${profile.branch || 'Not Specified'}) requires review.`],
+      };
+    } else if (!degreeMatched && branchMatched) {
+      return {
+        status: ELIGIBILITY_STATUS.MAY_BE_ELIGIBLE,
+        label: 'May Be Eligible / Needs Review',
+        color: '#D97706',
+        bgColor: '#FFFBEB',
+        borderColor: '#FDE68A',
+        reasons: [`Specialization matches, but degree (${profile.degree || profile.qualification || 'Not Specified'}) requires review.`],
+      };
     } else {
-      isDisqualified = true;
-      reasons.push(`Degree "${candidateDegree}" is not among advertised qualifications.`);
+      return {
+        status: ELIGIBILITY_STATUS.LIKELY_NOT_ELIGIBLE,
+        label: 'Likely Not Eligible',
+        color: '#6B7280',
+        bgColor: '#F3F4F6',
+        borderColor: '#E5E7EB',
+        reasons: ['Neither candidate degree nor branch matches the advertised criteria.'],
+      };
     }
   } else {
     // Fallback: Check job.qualification string
