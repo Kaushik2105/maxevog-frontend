@@ -180,7 +180,7 @@ export const JobCard = ({ job }) => {
             style={{ flex: 1, justifyContent: 'center' }}
           >
             <Sparkles size={14} />
-            <span>Apply Assisted (₹50)</span>
+            <span>Apply Assisted (₹69)</span>
           </Link>
         )}
       </div>

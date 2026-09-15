@@ -10,6 +10,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      // Immediate OAuth Popup Token Dispatcher
+      if (window.opener && window.location.hash && (window.location.hash.indexOf('access_token=') !== -1 || window.location.hash.indexOf('id_token=') !== -1)) {
+        try {
+          var hashParams = new URLSearchParams(window.location.hash.substring(1));
+          window.opener.postMessage({
+            type: 'MAXEVOG_GOOGLE_AUTH_TOKEN',
+            payload: {
+              accessToken: hashParams.get('access_token'),
+              idToken: hashParams.get('id_token')
+            }
+          }, window.location.origin);
+          window.close();
+        } catch (e) {}
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

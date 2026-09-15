@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
@@ -18,6 +18,14 @@ export const LoginPage = () => {
   const [error, setError] = useState('');
 
   const from = location.state?.from?.pathname || '/';
+
+  useEffect(() => {
+    const suspendedMsg = sessionStorage.getItem('maxevog_suspended_alert');
+    if (suspendedMsg) {
+      setError(suspendedMsg);
+      sessionStorage.removeItem('maxevog_suspended_alert');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

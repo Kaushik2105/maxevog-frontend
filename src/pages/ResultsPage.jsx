@@ -106,21 +106,21 @@ export const ResultsPage = () => {
                     {r.title}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                    {r.declaredDate && (
+                    {(r.declaredDate || r.resultDate) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Calendar size={14} />
-                        Date Declared: {new Date(r.declaredDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        Date Declared: {new Date(r.declaredDate || r.resultDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     )}
-                    {r.cutoffMarks && (
-                      <div>Cutoff: <strong>{r.cutoffMarks}</strong></div>
+                    {(r.cutoffMarks || r.cutoffInfo) && (
+                      <div>Cutoff: <strong>{r.cutoffMarks || r.cutoffInfo}</strong></div>
                     )}
                   </div>
                 </div>
 
-                {r.pdfUrl ? (
+                {(r.pdfUrl || r.officialResultUrl || r.attachmentUrl) ? (
                   <a
-                    href={r.pdfUrl}
+                    href={r.pdfUrl || r.officialResultUrl || r.attachmentUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-outline btn-sm"

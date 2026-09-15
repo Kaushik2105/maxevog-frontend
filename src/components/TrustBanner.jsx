@@ -113,10 +113,10 @@ export const TrustBanner = () => {
           </div>
           <div>
             <h4 style={{ fontSize: '0.9rem', color: '#FFFFFF', marginBottom: '0.2rem' }}>
-              Fixed ₹50 Assistance
+              Fixed ₹69 Assistance
             </h4>
             <p style={{ fontSize: '0.78rem', color: '#CBD5E1', lineHeight: 1.4, margin: 0 }}>
-              No arbitrary cyber café markups. Exact government board fee + flat ₹50 desk charge.
+              No arbitrary cyber café markups. Exact government board fee + flat ₹69 desk charge.
             </p>
           </div>
         </div>

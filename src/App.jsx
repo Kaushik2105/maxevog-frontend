@@ -17,6 +17,10 @@ import { MembershipPage } from './pages/MembershipPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { TermsPage } from './pages/TermsPage';
+import { RefundPolicyPage } from './pages/RefundPolicyPage';
+import { ZeroCredentialPolicyPage } from './pages/ZeroCredentialPolicyPage';
+import { HowAssistanceWorksPage } from './pages/HowAssistanceWorksPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AgentDashboardPage } from './pages/agent/AgentDashboardPage';
 
@@ -36,6 +40,10 @@ export const App = () => {
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/membership" element={<MembershipPage />} />
           <Route path="/feedback" element={<FeedbackPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/refund-policy" element={<RefundPolicyPage />} />
+          <Route path="/zero-credential-policy" element={<ZeroCredentialPolicyPage />} />
+          <Route path="/how-assistance-works" element={<HowAssistanceWorksPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 

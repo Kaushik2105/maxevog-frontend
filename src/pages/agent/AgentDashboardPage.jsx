@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { agentApi } from '../../api/agent.api';
+import { adminApi } from '../../api/admin.api';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Headphones, 
@@ -16,9 +17,60 @@ import {
   ArrowRight, 
   Building2, 
   Search,
-  Save
+  Save,
+  Plus,
+  Award,
+  CheckSquare,
+  X
 } from 'lucide-react';
 import { Modal } from '../../components/Modal';
+
+const STANDARD_MATCHER_DEGREES = [
+  'B.Tech / B.E. (Bachelor of Technology / Engineering)',
+  'M.Tech / M.E. (Master of Technology / Engineering)',
+  'B.Sc (Bachelor of Science)',
+  'M.Sc (Master of Science)',
+  'BCA (Bachelor of Computer Applications)',
+  'MCA (Master of Computer Applications)',
+  'B.Com (Bachelor of Commerce)',
+  'M.Com (Master of Commerce)',
+  'B.A. (Bachelor of Arts)',
+  'M.A. (Master of Arts)',
+  'BBA / BMS (Business Administration / Management)',
+  'MBA / PGDM (Master of Business Administration)',
+  'MBBS (Bachelor of Medicine & Surgery)',
+  'BDS (Dental Surgery)',
+  'B.Pharm (Bachelor of Pharmacy)',
+  'B.Ed (Bachelor of Education)',
+  'LLB (Bachelor of Legislative Law)',
+  'Diploma (Polytechnic / Technical)',
+  '12th / Intermediate (Higher Secondary)',
+  '10th (Matriculation)',
+  'Others',
+];
+
+const STANDARD_MATCHER_BRANCHES = [
+  'Any Branch / All Disciplines',
+  'Computer Science & Engineering (CSE)',
+  'Information Technology (IT)',
+  'Mechanical Engineering',
+  'Civil Engineering',
+  'Electrical Engineering',
+  'Electronics & Communication (ECE)',
+  'Data Science & Artificial Intelligence',
+  'Chemical Engineering',
+  'Commerce / Accounting / Finance',
+  'Economics',
+  'Arts / Humanities / Social Sciences',
+  'Physics / Chemistry / Mathematics (PCM)',
+  'Biology / Life Sciences / Biotechnology',
+  'General Medicine / Clinical Practice',
+  'Nursing & Paramedical Sciences',
+  'Pharmacy / Pharmacology',
+  'Law & Jurisprudence',
+  'General / Non-Technical Stream',
+  'Others',
+];
 
 export const AgentDashboardPage = () => {
   const { user } = useAuth();
@@ -40,8 +92,216 @@ export const AgentDashboardPage = () => {
   const [applicationNumber, setApplicationNumber] = useState('');
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
+  // Specialist Publishing Modals
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [newJob, setNewJob] = useState({
+    title: '',
+    organization: '',
+    department: '',
+    category: 'Central',
+    qualification: 'Graduate',
+    vacancies: '',
+    lastDate: '',
+    fee: 100,
+    officialUrl: '',
+    description: '',
+    tables: [],
+    eligibleDegrees: [],
+    eligibleBranches: [],
+  });
+
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [newResult, setNewResult] = useState({
+    title: '',
+    organization: '',
+    resultType: 'Merit List',
+    declaredDate: new Date().toISOString().split('T')[0],
+    cutoffMarks: 'UR: 132.5 | OBC: 124.0 | SC: 110.0',
+    pdfUrl: '',
+    description: '',
+    nextStageInfo: '',
+    isPublished: true,
+  });
+
+  const [showAdmitModal, setShowAdmitModal] = useState(false);
+  const [newAdmitCard, setNewAdmitCard] = useState({
+    title: '',
+    organization: '',
+    examDate: '',
+    releaseDate: new Date().toISOString().split('T')[0],
+    downloadUrl: '',
+    instructions: 'Candidates must carry a printed hall ticket and valid original Government photo ID proof to the exam center.',
+    status: 'AVAILABLE',
+    isPublished: true,
+  });
+
   const [notification, setNotification] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Table Helpers for Job Specs
+  const addTable = () => {
+    const newTable = {
+      title: 'Vacancy & Salary Details',
+      rows: [
+        { key: 'Post Code', value: '' },
+        { key: 'Pay Scale', value: 'Level-7 (₹44,900 - ₹1,42,400)' },
+      ],
+    };
+    setNewJob((prev) => ({
+      ...prev,
+      tables: [...(prev.tables || []), newTable],
+    }));
+  };
+
+  const updateTableTitle = (tableIdx, title) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      updated[tableIdx] = { ...updated[tableIdx], title };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const addTableRow = (tableIdx) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      updated[tableIdx] = {
+        ...updated[tableIdx],
+        rows: [...(updated[tableIdx].rows || []), { key: '', value: '' }],
+      };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const updateTableRow = (tableIdx, rowIdx, field, val) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      const rows = [...(updated[tableIdx].rows || [])];
+      rows[rowIdx] = { ...rows[rowIdx], [field]: val };
+      updated[tableIdx] = { ...updated[tableIdx], rows };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const removeTableRow = (tableIdx, rowIdx) => {
+    setNewJob((prev) => {
+      const updated = [...(prev.tables || [])];
+      const rows = updated[tableIdx].rows.filter((_, idx) => idx !== rowIdx);
+      updated[tableIdx] = { ...updated[tableIdx], rows };
+      return { ...prev, tables: updated };
+    });
+  };
+
+  const removeTable = (tableIdx) => {
+    setNewJob((prev) => ({
+      ...prev,
+      tables: (prev.tables || []).filter((_, idx) => idx !== tableIdx),
+    }));
+  };
+
+  const toggleDegreeMatch = (degree) => {
+    setNewJob((prev) => {
+      const current = prev.eligibleDegrees || [];
+      const exists = current.includes(degree);
+      return {
+        ...prev,
+        eligibleDegrees: exists ? current.filter((d) => d !== degree) : [...current, degree],
+      };
+    });
+  };
+
+  const toggleBranchMatch = (branch) => {
+    setNewJob((prev) => {
+      const current = prev.eligibleBranches || [];
+      const exists = current.includes(branch);
+      return {
+        ...prev,
+        eligibleBranches: exists ? current.filter((b) => b !== branch) : [...current, branch],
+      };
+    });
+  };
+
+  const handleSaveJob = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...newJob,
+        applicationLastDate: newJob.lastDate,
+        applicationFee: Number(newJob.fee) || 0,
+        officialApplicationUrl: newJob.officialUrl,
+        officialNotificationUrl: newJob.officialUrl,
+      };
+
+      const res = await adminApi.createJob(payload);
+      if (res.data?.success) {
+        setNotification('Official recruitment notice published successfully!');
+        setShowJobModal(false);
+        setNewJob({
+          title: '',
+          organization: '',
+          department: '',
+          category: 'Central',
+          qualification: 'Graduate',
+          vacancies: '',
+          lastDate: '',
+          fee: 100,
+          officialUrl: '',
+          description: '',
+          tables: [],
+          eligibleDegrees: [],
+          eligibleBranches: [],
+        });
+      }
+    } catch (err) {
+      const errMsg =
+        err.response?.data?.errors?.map((e) => `${e.field || ''}: ${e.message}`).join(', ') ||
+        err.response?.data?.message ||
+        'Failed to save recruitment notice';
+      alert(`Error saving job: ${errMsg}`);
+    }
+  };
+
+  const handleCreateResult = async (e) => {
+    e.preventDefault();
+    try {
+      await adminApi.createResult(newResult);
+      setNotification('Result notice successfully published to gazette stream!');
+      setShowResultModal(false);
+      setNewResult({
+        title: '',
+        organization: '',
+        resultType: 'Merit List',
+        declaredDate: new Date().toISOString().split('T')[0],
+        cutoffMarks: 'UR: 132.5 | OBC: 124.0 | SC: 110.0',
+        pdfUrl: '',
+        description: '',
+        nextStageInfo: '',
+        isPublished: true,
+      });
+    } catch (err) {
+      alert('Failed to create result');
+    }
+  };
+
+  const handleCreateAdmitCard = async (e) => {
+    e.preventDefault();
+    try {
+      await adminApi.createAdmitCard(newAdmitCard);
+      setNotification('Admit card successfully published for candidates!');
+      setShowAdmitModal(false);
+      setNewAdmitCard({
+        title: '',
+        organization: '',
+        examDate: '',
+        releaseDate: new Date().toISOString().split('T')[0],
+        downloadUrl: '',
+        instructions: 'Candidates must carry a printed hall ticket and valid original Government photo ID proof to the exam center.',
+        status: 'AVAILABLE',
+        isPublished: true,
+      });
+    } catch (err) {
+      alert('Failed to create admit card');
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -187,10 +447,32 @@ export const AgentDashboardPage = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowJobModal(true)}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Plus size={15} /> Publish Job
+            </button>
+            <button
+              onClick={() => setShowResultModal(true)}
+              className="btn btn-outline btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Award size={15} /> Publish Result
+            </button>
+            <button
+              onClick={() => setShowAdmitModal(true)}
+              className="btn btn-outline btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <FileText size={15} /> Publish Admit Card
+            </button>
             <button
               onClick={loadData}
-              className="btn btn-outline btn-sm"
+              className="btn btn-ghost btn-sm"
+              style={{ border: '1px solid var(--color-border)' }}
             >
               Sync Live Queue
             </button>
@@ -721,6 +1003,548 @@ export const AgentDashboardPage = () => {
               </button>
               <button type="submit" disabled={uploadingReceipt} className="btn btn-primary">
                 {uploadingReceipt ? 'Uploading...' : 'Confirm Submission'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* MODAL: PUBLISH JOB (Desk Specialist) */}
+        <Modal
+          isOpen={showJobModal}
+          onClose={() => setShowJobModal(false)}
+          title="Publish Official Recruitment Notice"
+        >
+          <form onSubmit={handleSaveJob}>
+            <div className="form-group">
+              <label className="form-label">Recruitment Title *</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Staff Selection Commission CGL Examination 2026"
+                value={newJob.title}
+                onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Conducting Authority / Commission *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. SSC, UPSC, IBPS"
+                  value={newJob.organization}
+                  onChange={(e) => setNewJob({ ...newJob, organization: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Department / Wing</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Ministry of Finance / Income Tax"
+                  value={newJob.department}
+                  onChange={(e) => setNewJob({ ...newJob, department: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Sector / Category</label>
+                <select
+                  className="form-control"
+                  value={newJob.category}
+                  onChange={(e) => setNewJob({ ...newJob, category: e.target.value })}
+                >
+                  <option value="Central">Central Government</option>
+                  <option value="State">State Government</option>
+                  <option value="Defense">Defense / Armed Forces</option>
+                  <option value="Banking">Banking & Financial</option>
+                  <option value="Railways">Indian Railways</option>
+                  <option value="Engineering">PSU / Technical Services</option>
+                  <option value="Medical">Medical & Paramedical</option>
+                  <option value="Police">Police & Paramilitary</option>
+                  <option value="Teaching">Education & Teaching</option>
+                  <option value="Other">Other Public Entity</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Minimum Qualification Base</label>
+                <select
+                  className="form-control"
+                  value={newJob.qualification}
+                  onChange={(e) => setNewJob({ ...newJob, qualification: e.target.value })}
+                >
+                  <option value="10th">10th Pass (Matriculation)</option>
+                  <option value="12th">12th Pass (Higher Secondary)</option>
+                  <option value="Diploma">Diploma / Polytechnic</option>
+                  <option value="Graduate">Bachelor Degree (Graduate)</option>
+                  <option value="Post Graduate">Master Degree (Post Graduate)</option>
+                  <option value="Doctorate">Doctorate / Ph.D.</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Total Vacancies *</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="e.g. 17727"
+                  value={newJob.vacancies}
+                  onChange={(e) => setNewJob({ ...newJob, vacancies: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Application Last Date *</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newJob.lastDate}
+                  onChange={(e) => setNewJob({ ...newJob, lastDate: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Official Portal Fee (₹)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={newJob.fee}
+                  onChange={(e) => setNewJob({ ...newJob, fee: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Official Application / Notification URL *</label>
+              <input
+                type="url"
+                className="form-control"
+                placeholder="https://ssc.gov.in/portal"
+                value={newJob.officialUrl}
+                onChange={(e) => setNewJob({ ...newJob, officialUrl: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Official Description & Summary</label>
+              <textarea
+                className="form-control"
+                rows="3"
+                placeholder="Overview of syllabus, reservation guidelines, or selection tiers..."
+                value={newJob.description}
+                onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
+              />
+            </div>
+
+            {/* Custom Job Data Tables */}
+            <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-title)' }}>
+                  Detailed Breakdown Tables (Vacancies, Salary, Eligibility Criteria)
+                </span>
+                <button
+                  type="button"
+                  onClick={addTable}
+                  className="btn btn-outline btn-sm"
+                  style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+                >
+                  <Plus size={14} /> Add Table
+                </button>
+              </div>
+
+              {(newJob.tables || []).length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {newJob.tables.map((tbl, tblIdx) => (
+                    <div key={tblIdx} style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          className="form-control"
+                          style={{ fontWeight: 600, fontSize: '0.85rem' }}
+                          value={tbl.title}
+                          onChange={(e) => updateTableTitle(tblIdx, e.target.value)}
+                          placeholder="Table Title"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeTable(tblIdx)}
+                          className="btn btn-outline btn-sm"
+                          style={{ padding: '0.4rem 0.6rem', color: 'var(--color-danger)' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        {(tbl.rows || []).map((row, rowIdx) => (
+                          <div key={rowIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              className="form-control"
+                              style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
+                              placeholder="Key"
+                              value={row.key}
+                              onChange={(e) => updateTableRow(tblIdx, rowIdx, 'key', e.target.value)}
+                            />
+                            <input
+                              type="text"
+                              className="form-control"
+                              style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
+                              placeholder="Value"
+                              value={row.value}
+                              onChange={(e) => updateTableRow(tblIdx, rowIdx, 'value', e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeTableRow(tblIdx, rowIdx)}
+                              className="btn btn-outline btn-sm"
+                              style={{ padding: '0.35rem 0.5rem', color: 'var(--color-text-muted)' }}
+                              title="Delete Row"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => addTableRow(tblIdx)}
+                        className="btn btn-outline btn-sm"
+                        style={{ marginTop: '0.75rem', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                      >
+                        <Plus size={13} /> Add Row
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Candidate Matcher Setup */}
+            <div style={{ marginTop: '1.5rem', padding: '1.25rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <CheckSquare size={16} /> Candidate Job Matcher (Eligibility Criteria)
+                </h4>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  Select eligible degrees and branches. Candidates matching these will see "Likely Eligible" tags.
+                </div>
+              </div>
+
+              {/* Degrees Grid */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-title)' }}>
+                    Eligible Degree / Certificate Titles:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all = STANDARD_MATCHER_DEGREES;
+                      const isAll = (newJob.eligibleDegrees || []).length === all.length;
+                      setNewJob((p) => ({ ...p, eligibleDegrees: isAll ? [] : all }));
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    {(newJob.eligibleDegrees || []).length === STANDARD_MATCHER_DEGREES.length ? 'Deselect All' : 'Select All Degrees'}
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#FFFFFF', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                  {STANDARD_MATCHER_DEGREES.map((deg) => {
+                    const checked = (newJob.eligibleDegrees || []).includes(deg);
+                    return (
+                      <label key={deg} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', color: checked ? 'var(--color-primary)' : 'var(--color-text-body)', fontWeight: checked ? 600 : 400 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleDegreeMatch(deg)}
+                        />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deg}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Branches Grid */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text-title)' }}>
+                    Eligible Major Branches / Specializations:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all = STANDARD_MATCHER_BRANCHES;
+                      const isAll = (newJob.eligibleBranches || []).length === all.length;
+                      setNewJob((p) => ({ ...p, eligibleBranches: isAll ? [] : all }));
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    {(newJob.eligibleBranches || []).length === STANDARD_MATCHER_BRANCHES.length ? 'Deselect All' : 'Select All Branches'}
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#FFFFFF', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                  {STANDARD_MATCHER_BRANCHES.map((br) => {
+                    const checked = (newJob.eligibleBranches || []).includes(br);
+                    return (
+                      <label key={br} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', color: checked ? 'var(--color-primary)' : 'var(--color-text-body)', fontWeight: checked ? 600 : 400 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleBranchMatch(br)}
+                        />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{br}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+              <button type="button" onClick={() => setShowJobModal(false)} className="btn btn-outline">
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Publish Recruitment & Specs
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* MODAL: PUBLISH RESULT (Desk Specialist) */}
+        <Modal
+          isOpen={showResultModal}
+          onClose={() => setShowResultModal(false)}
+          title="Publish Official Exam Result"
+        >
+          <form onSubmit={handleCreateResult}>
+            <div className="form-group">
+              <label className="form-label">Examination Title *</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Indian Airforce AFCAT 02/2026 Batch Recruitment Result"
+                value={newResult.title}
+                onChange={(e) => setNewResult({ ...newResult, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Authority / Commission *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Air Force Common Admission Test (AFCAT)"
+                  value={newResult.organization}
+                  onChange={(e) => setNewResult({ ...newResult, organization: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Result Stage / Type</label>
+                <select
+                  className="form-control"
+                  value={newResult.resultType}
+                  onChange={(e) => setNewResult({ ...newResult, resultType: e.target.value })}
+                >
+                  <option value="Final Merit List">Final Merit List</option>
+                  <option value="Prelims / Tier-1 Result">Prelims / Tier-1 Result</option>
+                  <option value="Mains / Tier-2 Result">Mains / Tier-2 Result</option>
+                  <option value="Interview / PET Shortlist">Interview / PET Shortlist</option>
+                  <option value="Cut-Off Marks & Scorecard">Cut-Off Marks & Scorecard</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Declaration Date *</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newResult.declaredDate}
+                  onChange={(e) => setNewResult({ ...newResult, declaredDate: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Cutoff Marks Overview</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. ALL: 135.0 | AE(L): 115.0 | AE(M): 85.0"
+                  value={newResult.cutoffMarks}
+                  onChange={(e) => setNewResult({ ...newResult, cutoffMarks: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Official Merit List / Portal PDF URL *</label>
+              <input
+                type="url"
+                className="form-control"
+                placeholder="https://afcat.edcil.co.in/ or https://domain.gov.in/result.pdf"
+                value={newResult.pdfUrl}
+                onChange={(e) => setNewResult({ ...newResult, pdfUrl: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Gazette Description / Remarks</label>
+              <textarea
+                className="form-control"
+                rows="2"
+                placeholder="Official notes regarding normalized marks, qualifying standards, or tie-breaking criteria..."
+                value={newResult.description}
+                onChange={(e) => setNewResult({ ...newResult, description: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Next Stage / Document Verification Schedule</label>
+              <textarea
+                className="form-control"
+                rows="2"
+                placeholder="Details on AFSB interview reporting dates, medical examination, or document verification..."
+                value={newResult.nextStageInfo}
+                onChange={(e) => setNewResult({ ...newResult, nextStageInfo: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <input
+                type="checkbox"
+                id="resultIsPublished"
+                checked={newResult.isPublished}
+                onChange={(e) => setNewResult({ ...newResult, isPublished: e.target.checked })}
+              />
+              <label htmlFor="resultIsPublished" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>
+                Publish immediately to homepage and official result stream
+              </label>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button type="button" onClick={() => setShowResultModal(false)} className="btn btn-outline">
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Publish Result
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* MODAL: PUBLISH ADMIT CARD (Desk Specialist) */}
+        <Modal
+          isOpen={showAdmitModal}
+          onClose={() => setShowAdmitModal(false)}
+          title="Publish Official Admit Card Notice"
+        >
+          <form onSubmit={handleCreateAdmitCard}>
+            <div className="form-group">
+              <label className="form-label">Exam Hall Ticket Title *</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. IBPS PO Tier 1 Hall Ticket / Admit Card"
+                value={newAdmitCard.title}
+                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Authority / Commission *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Institute of Banking Personnel Selection (IBPS)"
+                  value={newAdmitCard.organization}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, organization: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Issuance Status</label>
+                <select
+                  className="form-control"
+                  value={newAdmitCard.status}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, status: e.target.value })}
+                >
+                  <option value="AVAILABLE">AVAILABLE (Active Download)</option>
+                  <option value="RELEASED">RELEASED (Recently Issued)</option>
+                  <option value="SCHEDULED">SCHEDULED (Exam Dates Announced)</option>
+                  <option value="POSTPONED">POSTPONED</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Exam Date *</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newAdmitCard.examDate}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, examDate: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Release / Availability Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newAdmitCard.releaseDate}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, releaseDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Official Download Portal Link *</label>
+              <input
+                type="url"
+                className="form-control"
+                placeholder="https://ibps.in/hallticket or official board URL"
+                value={newAdmitCard.downloadUrl}
+                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, downloadUrl: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Exam Center & Hall Ticket Instructions</label>
+              <textarea
+                className="form-control"
+                rows="2"
+                placeholder="e.g. Bring original Aadhaar Card / Voter ID, 2 passport size photos, and printed ballpoint pen..."
+                value={newAdmitCard.instructions}
+                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, instructions: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <input
+                type="checkbox"
+                id="admitIsPublished"
+                checked={newAdmitCard.isPublished}
+                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, isPublished: e.target.checked })}
+              />
+              <label htmlFor="admitIsPublished" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>
+                Publish immediately to homepage and admit card repository
+              </label>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button type="button" onClick={() => setShowAdmitModal(false)} className="btn btn-outline">
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Publish Admit Card
               </button>
             </div>
           </form>

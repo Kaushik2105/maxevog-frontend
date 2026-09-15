@@ -26,12 +26,23 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    const status = error.response?.status;
+    const msg = String(error.response?.data?.message || '').toLowerCase();
+    const isSuspended = error.response?.data?.data?.isSuspended || msg.includes('suspended');
+
+    if (isSuspended) {
+      localStorage.removeItem('maxevog_token');
+      localStorage.removeItem('maxevog_user');
+      sessionStorage.setItem('maxevog_suspended_alert', 'Your account has been suspended by administration. Access has been revoked.');
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login?suspended=true';
+      }
+    } else if (status === 401) {
       const currentPath = window.location.pathname;
       if (!currentPath.includes('/login') && !currentPath.includes('/register') && currentPath !== '/') {
         localStorage.removeItem('maxevog_token');
         localStorage.removeItem('maxevog_user');
-        window.location.href = '/';
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

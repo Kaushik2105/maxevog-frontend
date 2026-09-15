@@ -178,7 +178,7 @@ export const AssistanceBookingPage = () => {
   };
 
   const govtFee = selectedJob?.fee || 0;
-  const assistanceFee = isPro ? 0 : 50; // Pro members get free assistance
+  const assistanceFee = isPro ? 0 : 69; // Pro members get free assistance
   const totalAmount = govtFee + assistanceFee;
 
   return (
@@ -422,11 +422,11 @@ export const AssistanceBookingPage = () => {
                     <div>
                       {isPro ? (
                         <span>
-                          <s style={{ color: 'var(--color-text-muted)', marginRight: '0.4rem' }}>₹50</s>
+                          <s style={{ color: 'var(--color-text-muted)', marginRight: '0.4rem' }}>₹69</s>
                           <strong style={{ color: 'var(--color-accent)' }}>FREE (Pro)</strong>
                         </span>
                       ) : (
-                        <strong>₹50</strong>
+                        <strong>₹69</strong>
                       )}
                     </div>
                   </div>
@@ -454,7 +454,7 @@ export const AssistanceBookingPage = () => {
                     fontSize: '0.78rem',
                     color: 'var(--color-secondary)'
                   }}>
-                    <strong>Aspirant Pro:</strong> Get 1 free assistance session + WhatsApp alerts for ₹99/3 months.{' '}
+                    <strong>Aspirant Pro:</strong> Get 1 free assistance session + WhatsApp alerts for ₹249/3 months.{' '}
                     <Link to="/membership" style={{ textDecoration: 'underline', fontWeight: 700 }}>
                       View Plan
                     </Link>

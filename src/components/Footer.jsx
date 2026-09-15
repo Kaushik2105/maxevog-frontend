@@ -112,10 +112,10 @@ export const Footer = () => {
             </div>
             <div>
               <div style={{ fontWeight: 700, color: '#FFFFFF', marginBottom: '0.25rem' }}>
-                Flat ₹50 Assistance Fee
+                Flat ₹69 Assistance Fee
               </div>
               <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.4 }}>
-                Transparent ledger: Pay only official board examination fee + transparent ₹50 desk assistance charge.
+                Transparent ledger: Pay only official board examination fee + transparent ₹69 desk assistance charge.
               </div>
             </div>
           </div>
@@ -177,7 +177,7 @@ export const Footer = () => {
               {!(isAdmin || isAgent) && (
                 <>
                   <li><Link to="/assistance/book" style={{ color: '#94A3B8' }}>1-on-1 Assisted Application</Link></li>
-                  <li><Link to="/membership" style={{ color: '#FED7AA', fontWeight: 600 }}>Pro Club (₹99 / 3 Months)</Link></li>
+                  <li><Link to="/membership" style={{ color: '#FED7AA', fontWeight: 600 }}>Pro Club (₹249 / 3 Months)</Link></li>
                 </>
               )}
               {isAgent && (
@@ -192,13 +192,14 @@ export const Footer = () => {
           {/* Column 3: Trust & Support */}
           <div>
             <div style={{ fontWeight: 700, color: '#FFFFFF', marginBottom: '1rem', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
-              Candidate Support
+              Candidate Support & Policies
             </div>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              <li><Link to="/feedback" style={{ color: '#94A3B8' }}>Submit Grievance / Feedback</Link></li>
-              <li><a href="#privacy" style={{ color: '#94A3B8' }}>Zero-Credential Policy</a></li>
-              <li><a href="#terms" style={{ color: '#94A3B8' }}>Terms of Service</a></li>
-              <li><a href="#faq" style={{ color: '#94A3B8' }}>How Assistance Works</a></li>
+              <li><Link to="/how-assistance-works" style={{ color: '#94A3B8' }}>How Assistance Works</Link></li>
+              <li><Link to="/zero-credential-policy" style={{ color: '#94A3B8' }}>Zero-Credential Policy</Link></li>
+              <li><Link to="/terms" style={{ color: '#94A3B8' }}>Terms & Conditions</Link></li>
+              <li><Link to="/refund-policy" style={{ color: '#94A3B8' }}>Refund Policy</Link></li>
+              <li><Link to="/feedback" style={{ color: '#94A3B8' }}>Grievance Desk / Feedback</Link></li>
             </ul>
           </div>
         </div>

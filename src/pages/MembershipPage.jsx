@@ -59,7 +59,7 @@ export const MembershipPage = () => {
       const res = await membershipApi.subscribe({
         plan: 'pro_quarterly',
         durationMonths: 3,
-        amount: 199
+        amount: 249
       });
 
       if (res.data?.success) {
@@ -192,10 +192,10 @@ export const MembershipPage = () => {
 
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)' }} className="tabular-nums">
-                ₹199 <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>/ 3 Months</span>
+                ₹249 <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>/ 3 Months</span>
               </div>
               <div style={{ fontSize: '0.78rem', color: 'var(--color-accent)', fontWeight: 600 }}>
-                Only ₹67 per month
+                Only ₹83 per month
               </div>
             </div>
           </div>
@@ -208,7 +208,7 @@ export const MembershipPage = () => {
               <CheckCircle2 size={20} color="var(--color-accent)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
               <div>
                 <strong style={{ color: 'var(--color-text-title)', fontSize: '0.92rem' }}>1 Free Assisted Desk Session</strong>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Worth ₹50. Use for any central or state recruitment.</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Worth ₹69. Use for any central or state recruitment.</div>
               </div>
             </div>
 
@@ -270,7 +270,7 @@ export const MembershipPage = () => {
               style={{ width: '100%', justifyContent: 'center' }}
             >
               <Zap size={18} />
-              <span>{loading ? 'Processing Activation...' : 'Activate Pro Club (₹199 / 3 Months)'}</span>
+              <span>{loading ? 'Processing Activation...' : 'Activate Pro Club (₹249 / 3 Months)'}</span>
             </button>
           )}
 

@@ -143,7 +143,7 @@ export const HomePage = () => {
               lineHeight: 1.6,
               marginBottom: '2rem'
             }}>
-              Explore real-time government job notifications with zero clutter. Book 1-on-1 cyber assistance sessions at flat ₹50 without sharing passwords or sensitive credentials.
+              Explore real-time government job notifications with zero clutter. Book 1-on-1 cyber assistance sessions at flat ₹69 without sharing passwords or sensitive credentials.
             </p>
 
             {/* Main Interactive Search Input */}
@@ -394,9 +394,9 @@ export const HomePage = () => {
                         )}
                       </div>
 
-                      {card.downloadUrl ? (
+                      {(card.downloadUrl || card.officialAdmitCardUrl || card.attachmentUrl) ? (
                         <a
-                          href={card.downloadUrl}
+                          href={card.downloadUrl || card.officialAdmitCardUrl || card.attachmentUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="btn btn-primary btn-sm"
@@ -455,13 +455,13 @@ export const HomePage = () => {
                           {result.title}
                         </h4>
                         <div style={{ fontSize: '0.82rem', color: 'var(--color-accent)', fontWeight: 600, marginTop: '0.3rem' }}>
-                          Declared: {result.declaredDate ? new Date(result.declaredDate).toLocaleDateString('en-IN') : 'Recent'}
+                          Declared: {(result.declaredDate || result.resultDate) ? new Date(result.declaredDate || result.resultDate).toLocaleDateString('en-IN') : 'Recent'}
                         </div>
                       </div>
 
-                      {result.pdfUrl ? (
+                      {(result.pdfUrl || result.officialResultUrl || result.attachmentUrl) ? (
                         <a
-                          href={result.pdfUrl}
+                          href={result.pdfUrl || result.officialResultUrl || result.attachmentUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="btn btn-outline btn-sm"

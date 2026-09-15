@@ -37,7 +37,7 @@ export const Navbar = () => {
     { name: 'Recruitments', path: '/', icon: Briefcase },
     { name: 'Admit Cards', path: '/admit-cards', icon: FileText },
     { name: 'Results', path: '/results', icon: Award },
-    ...(!(isAdmin || isAgent) ? [{ name: 'Apply Assisted', path: '/assistance/book', icon: CalendarCheck, badge: '₹50' }] : []),
+    ...(!(isAdmin || isAgent) ? [{ name: 'Apply Assisted', path: '/assistance/book', icon: CalendarCheck, badge: '₹69' }] : []),
   ];
 
   const completionPercentage = user?.profile?.profileCompletionPercentage ?? 0;
@@ -106,9 +106,6 @@ export const Navbar = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                 maxEvoG
-              </span>
-              <span className="badge badge-neutral" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-                BETA
               </span>
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
@@ -407,7 +404,7 @@ export const Navbar = () => {
               }}
             >
               <Sparkles size={18} color="var(--color-secondary)" />
-              <span>Pro Club (₹99 / 3 Mo)</span>
+              <span>Pro Club (₹249 / 3 Mo)</span>
             </Link>
           )}
           {(isAgent || isAdmin) && (

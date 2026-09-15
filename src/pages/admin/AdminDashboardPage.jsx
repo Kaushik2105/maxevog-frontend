@@ -134,9 +134,13 @@ export const AdminDashboardPage = () => {
   const [newResult, setNewResult] = useState({
     title: '',
     organization: '',
+    resultType: 'Merit List',
     declaredDate: new Date().toISOString().split('T')[0],
     cutoffMarks: 'UR: 132.5 | OBC: 124.0 | SC: 110.0',
-    pdfUrl: ''
+    pdfUrl: '',
+    description: '',
+    nextStageInfo: '',
+    isPublished: true,
   });
 
   const [showAdmitModal, setShowAdmitModal] = useState(false);
@@ -145,7 +149,10 @@ export const AdminDashboardPage = () => {
     organization: '',
     examDate: '',
     releaseDate: new Date().toISOString().split('T')[0],
-    downloadUrl: ''
+    downloadUrl: '',
+    instructions: 'Candidates must carry a printed hall ticket and valid original Government photo ID proof to the exam center.',
+    status: 'AVAILABLE',
+    isPublished: true,
   });
 
   // Assign Assistant
@@ -188,7 +195,7 @@ export const AdminDashboardPage = () => {
           setJobs(res.data.data.jobs || res.data.data || []);
         }
       } else if (activeTab === 'users') {
-        const res = await adminApi.getUsers({ limit: 100 });
+        const res = await adminApi.getUsers({ limit: 100, role: 'USER' });
         if (res.data?.success) {
           setUsersList(res.data.data.users || []);
         }
@@ -226,13 +233,14 @@ export const AdminDashboardPage = () => {
   };
 
   const handleToggleUserStatus = async (userId, currentStatus) => {
-    const nextStatus = currentStatus === 'active' ? 'suspended' : 'active';
+    const isSuspended = String(currentStatus).toUpperCase() === 'SUSPENDED';
+    const nextStatus = isSuspended ? 'ACTIVE' : 'SUSPENDED';
     try {
       await adminApi.updateUserStatus(userId, nextStatus);
-      setNotification(`Candidate account status updated to ${nextStatus}`);
+      setNotification(`Account status updated to ${nextStatus}`);
       loadTabData();
     } catch (err) {
-      alert('Failed to update candidate account');
+      alert('Failed to update account status');
     }
   };
 
@@ -759,7 +767,7 @@ export const AdminDashboardPage = () => {
                   ₹{(stats?.totalRevenue ?? stats?.revenue?.total ?? 0).toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#9333EA', fontWeight: 600, marginTop: '0.2rem' }}>
-                  {stats?.activePaidMembers ?? stats?.memberships?.active ?? 0} Active Pro Passes (₹99 / 3 Mo)
+                  {stats?.activePaidMembers ?? stats?.memberships?.active ?? 0} Active Pro Passes (₹249 / 3 Mo)
                 </div>
               </div>
             </div>
@@ -1065,8 +1073,8 @@ export const AdminDashboardPage = () => {
                       <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>{u.profile?.fullName || u.name || 'Candidate'}</td>
                       <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>{u.email}</td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>
-                        <span className={`badge ${u.role === 'ADMIN' ? 'badge-urgent' : u.role === 'AGENT' ? 'badge-primary' : 'badge-neutral'}`}>
-                          {u.role}
+                        <span className="badge badge-neutral">
+                          {u.profile?.position === 'CANDIDATE' || u.role === 'USER' ? 'Candidate' : u.role}
                         </span>
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>{u.profile?.category || 'General'}</td>
@@ -1074,18 +1082,18 @@ export const AdminDashboardPage = () => {
                         {u.isProMember ? <span className="badge badge-urgent">PRO</span> : <span className="badge badge-neutral">Standard</span>}
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>
-                        <span className={`badge ${u.status === 'suspended' ? 'badge-danger' : 'badge-official'}`}>
-                          {u.status || 'active'}
+                        <span className={`badge ${String(u.status).toUpperCase() === 'SUSPENDED' ? 'badge-danger' : 'badge-official'}`}>
+                          {u.status || 'ACTIVE'}
                         </span>
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
                         <button
-                          onClick={() => handleToggleUserStatus(u.id, u.status || 'active')}
-                          className={`btn btn-sm ${u.status === 'suspended' ? 'btn-primary' : 'btn-outline'}`}
+                          onClick={() => handleToggleUserStatus(u.id, u.status || 'ACTIVE')}
+                          className={`btn btn-sm ${String(u.status).toUpperCase() === 'SUSPENDED' ? 'btn-primary' : 'btn-outline'}`}
                           style={{ fontSize: '0.75rem' }}
                         >
-                          {u.status === 'suspended' ? <UserCheck size={14} /> : <UserX size={14} />}
-                          <span>{u.status === 'suspended' ? 'Reactivate' : 'Suspend'}</span>
+                          {String(u.status).toUpperCase() === 'SUSPENDED' ? <UserCheck size={14} /> : <UserX size={14} />}
+                          <span>{String(u.status).toUpperCase() === 'SUSPENDED' ? 'Reactivate' : 'Suspend'}</span>
                         </button>
                       </td>
                     </tr>
@@ -1133,6 +1141,7 @@ export const AdminDashboardPage = () => {
                       <th style={{ padding: '0.75rem 0.5rem' }}>Completed Sessions</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Account Status</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Created Date</th>
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1158,12 +1167,22 @@ export const AdminDashboardPage = () => {
                           </span>
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem' }}>
-                          <span className={`badge ${ag.status === 'suspended' ? 'badge-danger' : 'badge-official'}`}>
+                          <span className={`badge ${String(ag.status).toUpperCase() === 'SUSPENDED' ? 'badge-danger' : 'badge-official'}`}>
                             {ag.status || 'ACTIVE'}
                           </span>
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>
                           {new Date(ag.createdAt).toLocaleDateString('en-IN')}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                          <button
+                            onClick={() => handleToggleUserStatus(ag.id, ag.status || 'ACTIVE')}
+                            className={`btn btn-sm ${String(ag.status).toUpperCase() === 'SUSPENDED' ? 'btn-primary' : 'btn-outline'}`}
+                            style={{ fontSize: '0.75rem' }}
+                          >
+                            {String(ag.status).toUpperCase() === 'SUSPENDED' ? <UserCheck size={14} /> : <UserX size={14} />}
+                            <span>{String(ag.status).toUpperCase() === 'SUSPENDED' ? 'Reactivate' : 'Suspend'}</span>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1197,7 +1216,7 @@ export const AdminDashboardPage = () => {
 
               <div className="card" style={{ padding: '1.5rem' }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.4rem' }}>
-                  DESK ASSISTANCE CHARGES (₹50)
+                  DESK ASSISTANCE CHARGES (₹69)
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)' }} className="tabular-nums">
                   ₹{(financials?.assistanceRevenue || 0).toLocaleString('en-IN')}
@@ -1209,7 +1228,7 @@ export const AdminDashboardPage = () => {
 
               <div className="card" style={{ padding: '1.5rem' }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.4rem' }}>
-                  PRO CLUB MEMBERSHIPS (₹99)
+                  PRO CLUB MEMBERSHIPS (₹249)
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: '#9333EA' }} className="tabular-nums">
                   ₹{(financials?.membershipRevenue || 0).toLocaleString('en-IN')}
@@ -1726,45 +1745,106 @@ export const AdminDashboardPage = () => {
         >
           <form onSubmit={handleCreateResult}>
             <div className="form-group">
-              <label className="form-label">Examination Title</label>
+              <label className="form-label">Examination Title *</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="e.g. Civil Services Prelims 2026 Merit List"
+                placeholder="e.g. Indian Airforce AFCAT 02/2026 Batch Recruitment Result"
                 value={newResult.title}
                 onChange={(e) => setNewResult({ ...newResult, title: e.target.value })}
                 required
               />
             </div>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Authority / Commission *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Air Force Common Admission Test (AFCAT)"
+                  value={newResult.organization}
+                  onChange={(e) => setNewResult({ ...newResult, organization: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Result Stage / Type</label>
+                <select
+                  className="form-control"
+                  value={newResult.resultType}
+                  onChange={(e) => setNewResult({ ...newResult, resultType: e.target.value })}
+                >
+                  <option value="Final Merit List">Final Merit List</option>
+                  <option value="Prelims / Tier-1 Result">Prelims / Tier-1 Result</option>
+                  <option value="Mains / Tier-2 Result">Mains / Tier-2 Result</option>
+                  <option value="Interview / PET Shortlist">Interview / PET Shortlist</option>
+                  <option value="Cut-Off Marks & Scorecard">Cut-Off Marks & Scorecard</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Declaration Date *</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newResult.declaredDate}
+                  onChange={(e) => setNewResult({ ...newResult, declaredDate: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Cutoff Marks Overview</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. ALL: 135.0 | AE(L): 115.0 | AE(M): 85.0"
+                  value={newResult.cutoffMarks}
+                  onChange={(e) => setNewResult({ ...newResult, cutoffMarks: e.target.value })}
+                />
+              </div>
+            </div>
             <div className="form-group">
-              <label className="form-label">Authority / Commission</label>
+              <label className="form-label">Official Merit List / Portal PDF URL *</label>
               <input
-                type="text"
+                type="url"
                 className="form-control"
-                placeholder="e.g. Union Public Service Commission (UPSC)"
-                value={newResult.organization}
-                onChange={(e) => setNewResult({ ...newResult, organization: e.target.value })}
+                placeholder="https://afcat.edcil.co.in/ or https://domain.gov.in/result.pdf"
+                value={newResult.pdfUrl}
+                onChange={(e) => setNewResult({ ...newResult, pdfUrl: e.target.value })}
                 required
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Cutoff Marks Overview</label>
-              <input
-                type="text"
+              <label className="form-label">Gazette Description / Remarks</label>
+              <textarea
                 className="form-control"
-                value={newResult.cutoffMarks}
-                onChange={(e) => setNewResult({ ...newResult, cutoffMarks: e.target.value })}
+                rows="2"
+                placeholder="Official notes regarding normalized marks, qualifying standards, or tie-breaking criteria..."
+                value={newResult.description}
+                onChange={(e) => setNewResult({ ...newResult, description: e.target.value })}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Official PDF Merit List URL</label>
-              <input
-                type="url"
+              <label className="form-label">Next Stage / Document Verification Schedule</label>
+              <textarea
                 className="form-control"
-                placeholder="https://upsc.gov.in/results.pdf"
-                value={newResult.pdfUrl}
-                onChange={(e) => setNewResult({ ...newResult, pdfUrl: e.target.value })}
+                rows="2"
+                placeholder="Details on AFSB interview reporting dates, medical examination, or document verification..."
+                value={newResult.nextStageInfo}
+                onChange={(e) => setNewResult({ ...newResult, nextStageInfo: e.target.value })}
               />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <input
+                type="checkbox"
+                id="resultIsPublished"
+                checked={newResult.isPublished}
+                onChange={(e) => setNewResult({ ...newResult, isPublished: e.target.checked })}
+              />
+              <label htmlFor="resultIsPublished" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>
+                Publish immediately to homepage and official result stream
+              </label>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
               <button type="button" onClick={() => setShowResultModal(false)} className="btn btn-outline">
@@ -1785,46 +1865,94 @@ export const AdminDashboardPage = () => {
         >
           <form onSubmit={handleCreateAdmitCard}>
             <div className="form-group">
-              <label className="form-label">Exam Hall Ticket Title</label>
+              <label className="form-label">Exam Hall Ticket Title *</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="e.g. IBPS PO Tier 1 Hall Ticket"
+                placeholder="e.g. IBPS PO Tier 1 Hall Ticket / Admit Card"
                 value={newAdmitCard.title}
                 onChange={(e) => setNewAdmitCard({ ...newAdmitCard, title: e.target.value })}
                 required
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Authority / Commission</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="e.g. Institute of Banking Personnel Selection (IBPS)"
-                value={newAdmitCard.organization}
-                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, organization: e.target.value })}
-                required
-              />
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Authority / Commission *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Institute of Banking Personnel Selection (IBPS)"
+                  value={newAdmitCard.organization}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, organization: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Issuance Status</label>
+                <select
+                  className="form-control"
+                  value={newAdmitCard.status}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, status: e.target.value })}
+                >
+                  <option value="AVAILABLE">AVAILABLE (Active Download)</option>
+                  <option value="RELEASED">RELEASED (Recently Issued)</option>
+                  <option value="SCHEDULED">SCHEDULED (Exam Dates Announced)</option>
+                  <option value="POSTPONED">POSTPONED</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Exam Date *</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newAdmitCard.examDate}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, examDate: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Release / Availability Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={newAdmitCard.releaseDate}
+                  onChange={(e) => setNewAdmitCard({ ...newAdmitCard, releaseDate: e.target.value })}
+                />
+              </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Exam Date</label>
-              <input
-                type="date"
-                className="form-control"
-                value={newAdmitCard.examDate}
-                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, examDate: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Official Download Portal Link</label>
+              <label className="form-label">Official Download Portal Link *</label>
               <input
                 type="url"
                 className="form-control"
-                placeholder="https://ibps.in/hallticket"
+                placeholder="https://ibps.in/hallticket or official board URL"
                 value={newAdmitCard.downloadUrl}
                 onChange={(e) => setNewAdmitCard({ ...newAdmitCard, downloadUrl: e.target.value })}
+                required
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Exam Center & Hall Ticket Instructions</label>
+              <textarea
+                className="form-control"
+                rows="2"
+                placeholder="e.g. Bring original Aadhaar Card / Voter ID, 2 passport size photos, and printed ballpoint pen..."
+                value={newAdmitCard.instructions}
+                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, instructions: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <input
+                type="checkbox"
+                id="admitIsPublished"
+                checked={newAdmitCard.isPublished}
+                onChange={(e) => setNewAdmitCard({ ...newAdmitCard, isPublished: e.target.checked })}
+              />
+              <label htmlFor="admitIsPublished" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>
+                Publish immediately to homepage and admit card repository
+              </label>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
               <button type="button" onClick={() => setShowAdmitModal(false)} className="btn btn-outline">

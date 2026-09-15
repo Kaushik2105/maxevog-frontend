@@ -269,7 +269,7 @@ export const JobDetailPage = () => {
                   className="btn btn-secondary"
                 >
                   <Sparkles size={16} />
-                  <span>Book Assisted Application (₹50)</span>
+                  <span>Book Assisted Application (₹69)</span>
                 </Link>
               )}
             </div>
@@ -632,11 +632,11 @@ export const JobDetailPage = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>maxEvoG Desk Charge:</span>
-                    <strong>₹50</strong>
+                    <strong>₹69</strong>
                   </div>
                   <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', color: '#FED7AA' }}>
                     <strong>Total Transparent:</strong>
-                    <strong>₹{(job.fee || 0) + 50}</strong>
+                    <strong>₹{(job.fee || 0) + 69}</strong>
                   </div>
                 </div>
 
@@ -646,7 +646,7 @@ export const JobDetailPage = () => {
                   className="btn btn-secondary"
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
-                  <Sparkles size={16} /> Book Session (₹50)
+                  <Sparkles size={16} /> Book Session (₹69)
                 </Link>
 
                 <div style={{

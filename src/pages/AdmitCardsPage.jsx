@@ -112,15 +112,15 @@ export const AdmitCardsPage = () => {
                         Exam Date: {new Date(card.examDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     )}
-                    {card.releaseDate && (
-                      <div>Released: {new Date(card.releaseDate).toLocaleDateString('en-IN')}</div>
+                    {(card.releaseDate || card.availabilityDate) && (
+                      <div>Released: {new Date(card.releaseDate || card.availabilityDate).toLocaleDateString('en-IN')}</div>
                     )}
                   </div>
                 </div>
 
-                {card.downloadUrl ? (
+                {(card.downloadUrl || card.officialAdmitCardUrl || card.attachmentUrl) ? (
                   <a
-                    href={card.downloadUrl}
+                    href={card.downloadUrl || card.officialAdmitCardUrl || card.attachmentUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-primary btn-sm"
