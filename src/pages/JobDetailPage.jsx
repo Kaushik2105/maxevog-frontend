@@ -627,16 +627,16 @@ export const JobDetailPage = () => {
                   gap: '0.35rem'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Board Exam Fee:</span>
-                    <strong>{job.fee === 0 ? '₹0 (Free)' : `₹${job.fee}`}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>maxEvoG Desk Charge:</span>
-                    <strong>₹69</strong>
+                    <strong style={{ color: '#FED7AA' }}>₹69</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: '#94A3B8' }}>
+                    <span>Official Portal Fee:</span>
+                    <span>{job.fee === 0 ? '₹0 (Exempted)' : `Up to ₹${job.fee}`} (Paid by you on portal)</span>
                   </div>
                   <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', color: '#FED7AA' }}>
-                    <strong>Total Transparent:</strong>
-                    <strong>₹{(job.fee || 0) + 69}</strong>
+                    <strong>Pay Today to Book:</strong>
+                    <strong>₹69</strong>
                   </div>
                 </div>
 

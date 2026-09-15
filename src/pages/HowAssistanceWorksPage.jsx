@@ -22,50 +22,49 @@ const STEPS = [
     title: 'Select Job Notice & Book Assistance Slot',
     icon: Calendar,
     color: 'var(--color-primary)',
-    desc: 'Browse active Central and State government recruitment notices on maxEvoG. Click "Apply Assisted", select an available 30-minute time slot, and confirm booking for ₹69 (or ₹0 for Pro Members).'
+    desc: 'Browse active government recruitment notices on maxEvoG. Click "Apply Assisted", select an available time slot, and confirm booking for flat ₹69 (or ₹0 for Pro Club Members).'
   },
   {
     step: 2,
-    title: 'Instant Desk Specialist Allocation & Google Meet Invitation',
+    title: 'Receive Google Meet Link & Join Scheduled Call',
     icon: Video,
     color: 'var(--color-secondary)',
-    desc: 'Your designated recruitment desk specialist is assigned to your booking. You receive an instant Google Meet conference link in your candidate dashboard and email to connect face-to-face.'
+    desc: 'You receive an instant Google Meet conference invitation in your dashboard and email. Join the video call to connect face-to-face with your designated desk specialist.'
   },
   {
     step: 3,
-    title: 'Open Google Chrome Remote Desktop',
-    icon: Monitor,
+    title: 'Desk Specialist Rapidly Fills Your Form',
+    icon: FileEdit,
     color: 'var(--color-primary)',
-    desc: 'On your laptop or computer, visit remotedesktop.google.com/support in Google Chrome. Under the "Share this screen" section, click "Generate Code" to create a secure, temporary connection key.',
-    link: 'https://remotedesktop.google.com/support'
+    desc: 'Our trained specialist opens the official recruitment portal and accurately enters post codes, qualification tables, reservation categories, and resizes photos/signatures. You observe live to verify all information.'
   },
   {
     step: 4,
-    title: 'Share the One-Time 12-Digit Access Code',
-    icon: Key,
-    color: 'var(--color-secondary)',
-    desc: 'Provide the 12-digit code to your desk specialist via the Google Meet call. The specialist connects to your browser session. You retain 100% visibility of your screen and can click "Stop Sharing" anytime.'
+    title: 'Chrome Remote Desktop Handoff: Enter OTPs, Passwords & Captchas',
+    icon: Lock,
+    color: '#D97706',
+    desc: 'When OTP, password, or captcha verification appears, Chrome Remote Desktop (remotedesktop.google.com/support) is engaged. The agent grants control to your device so you type your confidential secrets directly. Our agents never ask for your secrets!'
   },
   {
     step: 5,
-    title: 'Live Form Filling & Exact Document Resizing',
-    icon: FileEdit,
-    color: 'var(--color-accent)',
-    desc: 'The specialist enters your educational qualifications, reservation categories, post preference codes, and exam center choices. They compress photographs and signatures to exact official kilobyte specifications.'
+    title: 'Candidate Pays Official Government Exam Fee Directly',
+    icon: Monitor,
+    color: 'var(--color-secondary)',
+    desc: 'Once the application is fully populated, you complete the official portal examination fee directly using your own UPI, Card, or Netbanking. maxEvoG never charges or handles official government exam fees.'
   },
   {
     step: 6,
-    title: 'Zero-Credential Handoff: Enter OTPs, Passwords & Captchas',
-    icon: Lock,
-    color: '#D97706',
-    desc: 'When the government portal asks for your portal password, SMS OTP, visual captcha, or fee payment, the specialist halts all inputs and hands control back to you. You type your confidential secrets directly!'
+    title: 'Review Final Preview & Download Confirmation Slip',
+    icon: FileCheck,
+    color: '#10B981',
+    desc: 'Together, you inspect the final submitted application copy. The official board acknowledgment slip/PDF is downloaded directly to your device and mirrored in your maxEvoG application ledger.'
   },
   {
     step: 7,
-    title: 'Download Official Board Receipt & Confirmation Slip',
-    icon: FileCheck,
-    color: '#10B981',
-    desc: 'Together, you review the application preview page. Once submitted, the official government confirmation PDF is downloaded directly to your device and mirrored to your maxEvoG application ledger.'
+    title: 'Candidate Feedback & Session Completion',
+    icon: Headphones,
+    color: 'var(--color-accent)',
+    desc: 'You submit quick 1-click feedback on your experience through our website. The specialist marks your session successfully fulfilled and the desk call wraps up.'
   }
 ];
 

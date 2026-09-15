@@ -147,32 +147,17 @@ export const HomePage = () => {
             </p>
 
             {/* Main Interactive Search Input */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: '#FFFFFF',
-              border: '2px solid var(--color-primary)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-md)',
-              padding: '0.4rem 0.6rem 0.4rem 1.25rem',
-              gap: '0.75rem',
-              marginBottom: '1.5rem'
-            }}>
-              <Search size={20} color="var(--color-text-muted)" />
-              <input
-                type="text"
-                placeholder="Search recruitments by post, commission (e.g. UPSC, SSC CGL, IBPS, Railways)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '1rem',
-                  color: 'var(--color-text-title)'
-                }}
-              />
-              <button className="btn btn-primary" style={{ padding: '0.65rem 1.5rem' }}>
+            <div className="hero-search-box">
+              <div className="hero-search-input-wrap">
+                <Search size={20} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search recruitments by post, commission (e.g. UPSC, SSC, IBPS)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <button className="btn btn-primary hero-search-btn">
                 Find Openings
               </button>
             </div>
@@ -482,6 +467,62 @@ export const HomePage = () => {
           )}
         </div>
       </section>
+
+      <style>{`
+        .hero-search-box {
+          display: flex;
+          align-items: center;
+          background-color: #FFFFFF;
+          border: 2px solid var(--color-primary);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-md);
+          padding: 0.4rem 0.6rem 0.4rem 1.25rem;
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+          width: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+        .hero-search-input-wrap {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex: 1;
+          min-width: 0;
+        }
+        .hero-search-box input {
+          flex: 1;
+          min-width: 0;
+          width: 100%;
+          border: none;
+          outline: none;
+          font-size: 1rem;
+          color: var(--color-text-title);
+          background: transparent;
+        }
+        .hero-search-btn {
+          padding: 0.65rem 1.5rem;
+          white-space: nowrap;
+          flex-shrink: 0;
+          border-radius: var(--radius-md);
+        }
+        @media (max-width: 640px) {
+          .hero-search-box {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 0.85rem;
+            gap: 0.75rem;
+            border-radius: var(--radius-md);
+          }
+          .hero-search-input-wrap {
+            width: 100%;
+          }
+          .hero-search-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
     </div>
   );
 };

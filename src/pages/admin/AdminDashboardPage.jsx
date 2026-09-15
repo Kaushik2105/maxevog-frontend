@@ -1463,23 +1463,33 @@ export const AdminDashboardPage = () => {
                   value={newJob.category}
                   onChange={(e) => setNewJob({ ...newJob, category: e.target.value })}
                 >
-                  <option value="Central">Central Govt</option>
-                  <option value="State">State Govt</option>
+                  <option value="Central">Central Government</option>
+                  <option value="State">State Government</option>
+                  <option value="Defense">Defense / Armed Forces</option>
                   <option value="Banking">Banking & Financial</option>
-                  <option value="Railways">Railways (RRB)</option>
-                  <option value="Defence">Defence & Police</option>
+                  <option value="Railways">Indian Railways</option>
+                  <option value="Engineering">PSU / Technical Services</option>
+                  <option value="Medical">Medical & Paramedical</option>
+                  <option value="Police">Police & Paramilitary</option>
+                  <option value="Teaching">Education & Teaching</option>
+                  <option value="Other">Other Public Entity</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Primary Qualification</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. 12th Pass / Graduate"
+                <label className="form-label">Minimum Qualification Base</label>
+                <select
+                  className="form-control form-select"
                   value={newJob.qualification}
                   onChange={(e) => setNewJob({ ...newJob, qualification: e.target.value })}
-                />
+                >
+                  <option value="10th">10th Pass (Matriculation)</option>
+                  <option value="12th">12th Pass (Higher Secondary)</option>
+                  <option value="Diploma">Diploma / Polytechnic</option>
+                  <option value="Graduate">Bachelor Degree (Graduate)</option>
+                  <option value="Post Graduate">Master Degree (Post Graduate)</option>
+                  <option value="Doctorate">Doctorate / Ph.D.</option>
+                </select>
               </div>
 
               <div className="form-group">

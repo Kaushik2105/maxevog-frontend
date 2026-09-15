@@ -106,10 +106,33 @@ export const TermsPage = () => {
             </div>
           </section>
 
-          {/* Section 3 */}
+          {/* Section 3: Service Fee & Direct Payment */}
+          <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
+            <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <Scale size={20} /> 3. Transparent Flat ₹69 Service Charge & Direct Candidate Portal Payment
+            </h2>
+            <div style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem' }}>
+              <p style={{ margin: '0 0 1rem 0' }}>
+                To avoid confusion arising from varying candidate category fee structures (e.g., ₹0 for SC, ST, PwD, and female candidates vs. full fees for General/OBC candidates), maxEvoG adheres to an absolute separation between technical service fees and government examination fees:
+              </p>
+              <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', margin: 0 }}>
+                <li>
+                  <strong>maxEvoG Only Collects Flat ₹69 Service Charge:</strong> When reserving a 1-on-1 cyber desk assistance session, candidates pay solely maxEvoG's flat service charge of ₹69 (or ₹0 for active maxEvoG Pro Club members).
+                </li>
+                <li>
+                  <strong>Direct Candidate Board Payment:</strong> Candidates are solely responsible for paying their official application fee directly on the government recruitment portal (via their own UPI, debit card, or net banking) during the live session handoff.
+                </li>
+                <li>
+                  <strong>No Handling of Examination Funds:</strong> maxEvoG agents and systems will NEVER ask candidates to send examination fee amounts to personal agent accounts, nor will agents ever ask for candidate card details, UPI MPINs, or bank passwords.
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Section 4 */}
           <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <ShieldAlert size={20} /> 3. Candidate Code of Conduct & Strict Anti-Harassment Terms
+              <ShieldAlert size={20} /> 4. Candidate Code of Conduct & Strict Anti-Harassment Terms
             </h2>
             <div style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem' }}>
               <p style={{ margin: '0 0 1rem 0' }}>
@@ -125,10 +148,10 @@ export const TermsPage = () => {
             </div>
           </section>
 
-          {/* Section 4 */}
+          {/* Section 5 */}
           <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <RefreshCw size={20} /> 4. Reconnection Protocol & Technical Disruptions
+              <RefreshCw size={20} /> 5. Reconnection Protocol & Technical Disruptions
             </h2>
             <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: '0 0 1rem 0' }}>
               We understand that power fluctuations, ISP downtimes, or system reboots may occur. In the event of an unexpected disconnection during a live assistance session:
@@ -143,20 +166,20 @@ export const TermsPage = () => {
             </ul>
           </section>
 
-          {/* Section 5 */}
+          {/* Section 6 */}
           <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <AlertTriangle size={20} /> 5. Board Authority Jurisdiction & Eligibility Disclaimer
+              <AlertTriangle size={20} /> 6. Board Authority Jurisdiction & Eligibility Disclaimer
             </h2>
             <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: 0 }}>
               The applicant is solely responsible for the authenticity, correctness, and eligibility qualifications (including age limit, degree recognition, caste/category certificates, and domicile validity) provided during the application process. maxEvoG desk agents provide technical form-entry assistance only. Final examination scheduling, center allocation, admit card generation, eligibility clearance, cutoff determination, and appointment orders are strictly within the sovereign purview of the conducting government boards. maxEvoG assumes zero liability for rejection caused by candidate ineligibility.
             </p>
           </section>
 
-          {/* Section 6 */}
+          {/* Section 7 */}
           <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <CheckCircle2 size={20} /> 6. Account Suspension & Immediate Invalidation
+              <CheckCircle2 size={20} /> 7. Account Suspension & Immediate Invalidation
             </h2>
             <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: 0 }}>
               maxEvoG reserves the right to suspend or terminate any candidate or agent account found in violation of these terms, engaging in unauthorized scraping, automated bot queries, fraudulent payment chargebacks, or abusive conduct. Upon suspension, all active authentication sessions, tokens, and portal access privileges are invalidated immediately in real-time, resulting in prompt disconnection from the platform.

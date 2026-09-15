@@ -124,24 +124,32 @@ export const ZeroCredentialPolicyPage = () => {
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>1</div>
                   <div>
-                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-primary)' }}>Form Navigation & Data Entry:</strong>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Specialist inputs qualifications, post codes, exam city preferences, and formats photos/signatures.</div>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-primary)' }}>Google Meet Live Form Entry:</strong>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Specialist inputs qualifications, post codes, exam city preferences, and documents swiftly while the candidate verifies all entries live.</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'var(--color-secondary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>2</div>
                   <div>
-                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-secondary)' }}>Live Handoff Event:</strong>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>When portal asks for Candidate Password, Mobile/Email OTP, Captcha, or Payment details, the agent stops input and verbally asks the candidate to type them.</div>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-secondary)' }}>Chrome Remote Desktop Handoff:</strong>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>When the portal requests passwords, OTPs, or captchas, control is handed directly to the candidate to input credentials securely without disclosing them.</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'var(--color-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>3</div>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: '#0284C7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>3</div>
                   <div>
-                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-accent)' }}>Submission & Acknowledgment:</strong>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Once verified, the final confirmation slip is generated, saved to candidate's device, and uploaded to the maxEvoG application ledger.</div>
+                    <strong style={{ fontSize: '0.9rem', color: '#0284C7' }}>Direct Candidate Portal Payment:</strong>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>The candidate completes the official examination fee payment directly on the recruitment portal using their own UPI/cards. maxEvoG never charges or handles portal fees.</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'var(--color-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>4</div>
+                  <div>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-accent)' }}>Confirmation Slip & Candidate Feedback:</strong>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>The final confirmation slip is downloaded, candidate submits rating/feedback on maxEvoG, and the assisted session concludes.</div>
                   </div>
                 </div>
               </div>

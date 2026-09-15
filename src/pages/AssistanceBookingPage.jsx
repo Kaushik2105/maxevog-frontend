@@ -179,7 +179,7 @@ export const AssistanceBookingPage = () => {
 
   const govtFee = selectedJob?.fee || 0;
   const assistanceFee = isPro ? 0 : 69; // Pro members get free assistance
-  const totalAmount = govtFee + assistanceFee;
+  const totalAmount = assistanceFee; // Only pay the flat 69 desk assistance fee to maxEvoG
 
   return (
     <div style={{ padding: '2.5rem 0 4rem' }}>
@@ -408,17 +408,12 @@ export const AssistanceBookingPage = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div className="card" style={{ padding: '1.5rem', border: '2px solid var(--color-primary-subtle)' }}>
                 <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', marginBottom: '1rem' }}>
-                  Transparent Fee Ledger
+                  Transparent Booking Fee
                 </h3>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Official Board Exam Fee:</span>
-                    <strong>₹{govtFee}</strong>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>maxEvoG Desk Assistance:</span>
+                    <span style={{ color: 'var(--color-text-muted)' }}>maxEvoG Desk Assistance Fee:</span>
                     <div>
                       {isPro ? (
                         <span>
@@ -438,9 +433,22 @@ export const AssistanceBookingPage = () => {
                     justifyContent: 'space-between',
                     fontSize: '1.1rem'
                   }}>
-                    <strong>Total Payable:</strong>
+                    <strong>Total Payable Today:</strong>
                     <strong style={{ color: 'var(--color-primary)' }}>₹{totalAmount}</strong>
                   </div>
+                </div>
+
+                <div style={{
+                  backgroundColor: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.75rem 0.85rem',
+                  fontSize: '0.76rem',
+                  color: 'var(--color-text-muted)',
+                  lineHeight: 1.45,
+                  marginBottom: '1.25rem'
+                }}>
+                  <strong style={{ color: 'var(--color-text-title)' }}>Note on Board Exam Fee:</strong> Depending on category & concessions, the official portal fee ranges from <strong>₹0 to ₹{govtFee}</strong>. You will pay the official fee directly on the government recruitment portal yourself during the live session. maxEvoG does not charge or handle official exam fees.
                 </div>
 
                 {/* Pro Club Promo if not pro */}
