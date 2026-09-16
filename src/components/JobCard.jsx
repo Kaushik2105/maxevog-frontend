@@ -129,7 +129,11 @@ export const JobCard = ({ job }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}>
             <Users size={15} color="var(--color-text-muted)" />
             <span>
-              <strong>{job.vacancies ? job.vacancies.toLocaleString('en-IN') : 'N/A'}</strong> Vacancies
+              {job.vacancies ? (
+                <><strong>{job.vacancies.toLocaleString('en-IN')}</strong> Vacancies</>
+              ) : (
+                <strong>Exam / Merit Based</strong>
+              )}
             </span>
           </div>
 

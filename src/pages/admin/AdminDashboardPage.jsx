@@ -98,6 +98,12 @@ export const AdminDashboardPage = () => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Daily Assistance Capacity Controls
+  const [selectedLimitDate, setSelectedLimitDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dailyLimitsData, setDailyLimitsData] = useState([]);
+  const [currentDateLimit, setCurrentDateLimit] = useState(10);
+  const [updatingLimit, setUpdatingLimit] = useState(false);
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -200,9 +206,24 @@ export const AdminDashboardPage = () => {
           setUsersList(res.data.data.users || []);
         }
       } else if (activeTab === 'assistance') {
-        const res = await adminApi.getAssistanceSessions({ limit: 100 });
-        if (res.data?.success) {
-          setAssistanceSessions(res.data.data.sessions || res.data.data.requests || []);
+        const [sessionsRes, limitsRes, agentsRes] = await Promise.all([
+          adminApi.getAssistanceSessions({ limit: 100 }),
+          adminApi.getDailyLimits({ startDate: new Date().toISOString().split('T')[0], days: 14 }),
+          adminApi.getAgents()
+        ]);
+        if (sessionsRes.data?.success) {
+          setAssistanceSessions(sessionsRes.data.data.sessions || sessionsRes.data.data.requests || []);
+        }
+        if (limitsRes.data?.success) {
+          const list = limitsRes.data.data || [];
+          setDailyLimitsData(list);
+          const currentEntry = list.find((l) => l.date === selectedLimitDate);
+          if (currentEntry) {
+            setCurrentDateLimit(currentEntry.limit);
+          }
+        }
+        if (agentsRes.data?.success) {
+          setAgentsList(agentsRes.data.data.agents || []);
         }
       } else if (activeTab === 'financials') {
         const res = await adminApi.getFinancials();
@@ -241,6 +262,22 @@ export const AdminDashboardPage = () => {
       loadTabData();
     } catch (err) {
       alert('Failed to update account status');
+    }
+  };
+
+  const handleUpdateLimitForDate = async (targetDate, newLimit) => {
+    if (updatingLimit) return;
+    setUpdatingLimit(true);
+    try {
+      const res = await adminApi.updateDailyLimit({ date: targetDate, limit: Number(newLimit) });
+      if (res.data?.success) {
+        setNotification(`Daily assistance capacity for ${targetDate} set to ${newLimit} sessions.`);
+        loadTabData();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update daily capacity limit');
+    } finally {
+      setUpdatingLimit(false);
     }
   };
 
@@ -931,8 +968,8 @@ export const AdminDashboardPage = () => {
                         <td style={{ padding: '0.75rem 0.5rem' }}>
                           <span className="badge badge-neutral">{job.category || 'Central'}</span>
                         </td>
-                        <td style={{ padding: '0.75rem 0.5rem' }} className="tabular-nums">
-                          {job.vacancies ? job.vacancies.toLocaleString('en-IN') : 'N/A'}
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          {job.vacancies ? <span className="tabular-nums">{job.vacancies.toLocaleString('en-IN')}</span> : <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>Exam / Merit Based</span>}
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-secondary)', fontWeight: 600 }}>
                           {job.applicationLastDate
@@ -990,6 +1027,109 @@ export const AdminDashboardPage = () => {
               Assisted Booking Queue & Specialist Allocations
             </h3>
 
+            {/* Daily Assistance Capacity Settings widget */}
+            <div style={{
+              backgroundColor: 'var(--color-bg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1.25rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Calendar size={16} /> Daily Assistance Capacity Manager
+                  </h4>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                    Configure the maximum standard assistance bookings candidate intake for each day.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => loadTabData()}
+                  className="btn btn-outline btn-sm"
+                  style={{ fontSize: '0.75rem' }}
+                >
+                  Refresh Capacity
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
+                    Select Date
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.6rem' }}
+                    value={selectedLimitDate}
+                    onChange={(e) => {
+                      const newD = e.target.value;
+                      setSelectedLimitDate(newD);
+                      const entry = dailyLimitsData.find((l) => l.date === newD);
+                      setCurrentDateLimit(entry ? entry.limit : 10);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>
+                    Max Daily Sessions
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    className="form-control"
+                    style={{ fontSize: '0.85rem', width: '130px', padding: '0.35rem 0.6rem' }}
+                    value={currentDateLimit}
+                    onChange={(e) => setCurrentDateLimit(Number(e.target.value))}
+                  />
+                </div>
+
+                <div style={{ paddingTop: '1.2rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateLimitForDate(selectedLimitDate, currentDateLimit)}
+                    disabled={updatingLimit}
+                    className="btn btn-primary btn-sm"
+                  >
+                    {updatingLimit ? 'Saving...' : 'Save Limit for Date'}
+                  </button>
+                </div>
+
+                {/* Capacity summary pill */}
+                {(() => {
+                  const entry = dailyLimitsData.find((l) => l.date === selectedLimitDate);
+                  const booked = entry ? entry.bookedCount : 0;
+                  const maxLimit = entry ? entry.limit : currentDateLimit;
+                  const remaining = Math.max(0, maxLimit - booked);
+                  return (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid var(--color-border)',
+                      fontSize: '0.8rem',
+                      marginTop: '1.2rem'
+                    }}>
+                      <span>Booked: <strong>{booked}</strong></span>
+                      <span>•</span>
+                      <span>Capacity: <strong>{maxLimit}</strong></span>
+                      <span>•</span>
+                      <span style={{ color: remaining === 0 ? '#DC2626' : '#16A34A', fontWeight: 700 }}>
+                        {remaining === 0 ? 'Capacity Full' : `${remaining} Slots Left`}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
             {assistanceSessions.length === 0 ? (
               <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
                 No assistance bookings in queue.
@@ -1001,9 +1141,9 @@ export const AdminDashboardPage = () => {
                     key={session.id}
                     style={{
                       padding: '1.25rem',
-                      border: '1px solid var(--color-border)',
+                      border: session.status === 'URGENT_PENDING_REVIEW' ? '2px solid #F87171' : '1px solid var(--color-border)',
                       borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--color-bg)',
+                      backgroundColor: session.status === 'URGENT_PENDING_REVIEW' ? '#FEF2F2' : 'var(--color-bg)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -1012,9 +1152,20 @@ export const AdminDashboardPage = () => {
                     }}
                   >
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span className="badge badge-primary">{session.status || 'SCHEDULED'}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
+                        {session.status === 'URGENT_PENDING_REVIEW' ? (
+                          <span className="badge" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #F87171', fontWeight: 700 }}>
+                            ⚡ URGENT REVIEW PENDING
+                          </span>
+                        ) : (
+                          <span className="badge badge-primary">{session.status || 'SCHEDULED'}</span>
+                        )}
                         <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Ref: {session.id.slice(0, 8)}</span>
+                        {session.isUrgent && (
+                          <span className="badge" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #F87171', fontWeight: 700, fontSize: '0.72rem' }}>
+                            ⚡ URGENT (₹{session.priorityFee || 99})
+                          </span>
+                        )}
                       </div>
 
                       <h4 style={{ fontSize: '1.05rem', color: 'var(--color-text-title)', margin: '0 0 0.35rem 0' }}>
@@ -1022,8 +1173,14 @@ export const AdminDashboardPage = () => {
                       </h4>
 
                       <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-                        Slot: <strong>{session.timeSlot?.startTime || session.timeSlot || 'Scheduled'}</strong> • Target: {session.job?.title || 'Examination'}
+                        Date: <strong>{session.bookingDate ? new Date(session.bookingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : (session.date || 'Scheduled')}</strong> • Target: <strong>{session.customExamTitle || session.job?.title || 'Examination'}</strong> {session.job?.organization ? `(${session.job.organization})` : ''}
                       </div>
+
+                      {session.urgencyReason && (
+                        <div style={{ fontSize: '0.8rem', color: '#DC2626', marginTop: '0.35rem' }}>
+                          <strong>Urgency Deadline/Reason:</strong> "{session.urgencyReason}"
+                        </div>
+                      )}
 
                       {session.assignedAgent && (
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-accent)', marginTop: '0.25rem' }}>
@@ -1036,9 +1193,18 @@ export const AdminDashboardPage = () => {
                       onClick={() => {
                         setSelectedSession(session);
                       }}
-                      className="btn btn-primary btn-sm"
+                      className={session.status === 'URGENT_PENDING_REVIEW' ? "btn btn-sm" : "btn btn-primary btn-sm"}
+                      style={session.status === 'URGENT_PENDING_REVIEW' ? {
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem'
+                      } : {}}
                     >
-                      <Video size={14} /> Assign Specialist / Meet URL
+                      <Video size={14} /> {session.status === 'URGENT_PENDING_REVIEW' ? 'Assign Idle Specialist' : 'Assign Specialist / Meet URL'}
                     </button>
                   </div>
                 ))}
@@ -1137,6 +1303,7 @@ export const AdminDashboardPage = () => {
                       <th style={{ padding: '0.75rem 0.5rem' }}>Officer Name</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Official Email</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Mobile Number</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Live Availability</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Active Sessions</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Completed Sessions</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Account Status</th>
@@ -1155,6 +1322,17 @@ export const AdminDashboardPage = () => {
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-muted)' }}>
                           {ag.profile?.mobileNumber || '—'}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          {ag.profile?.agentStatus === 'ASSISTING' ? (
+                            <span className="badge" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #F87171', fontWeight: 700, fontSize: '0.75rem' }}>
+                              ● ASSISTING
+                            </span>
+                          ) : (
+                            <span className="badge" style={{ backgroundColor: '#DCFCE7', color: '#16A34A', border: '1px solid #86EFAC', fontWeight: 700, fontSize: '0.75rem' }}>
+                              ● IDLE
+                            </span>
+                          )}
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem' }}>
                           <span className="badge badge-primary">
@@ -1388,7 +1566,17 @@ export const AdminDashboardPage = () => {
                           })}
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem' }}>
-                          <span className="badge badge-primary" style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          <span
+                            className="badge"
+                            style={{
+                              fontFamily: 'monospace',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              backgroundColor: log.action?.startsWith('AGENT_') ? '#CCFBF1' : log.action?.startsWith('ADMIN_') ? '#EDE9FE' : '#EFF6FF',
+                              color: log.action?.startsWith('AGENT_') ? '#0F766E' : log.action?.startsWith('ADMIN_') ? '#6D28D9' : '#1D4ED8',
+                              border: `1px solid ${log.action?.startsWith('AGENT_') ? '#5EEAD4' : log.action?.startsWith('ADMIN_') ? '#C4B5FD' : '#BFDBFE'}`
+                            }}
+                          >
                             {log.action}
                           </span>
                         </td>
@@ -1396,7 +1584,16 @@ export const AdminDashboardPage = () => {
                           {log.entityType} {log.entityId ? <span style={{ color: 'var(--color-text-muted)', fontWeight: 400, fontSize: '0.78rem' }}>#{log.entityId.slice(0, 8)}</span> : ''}
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem' }}>
-                          <span className={`badge ${log.actorRole === 'ADMIN' ? 'badge-urgent' : 'badge-neutral'}`}>
+                          <span
+                            className="badge"
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              backgroundColor: log.actorRole === 'ADMIN' ? '#FEE2E2' : log.actorRole === 'AGENT' ? '#DCFCE7' : '#F3F4F6',
+                              color: log.actorRole === 'ADMIN' ? '#DC2626' : log.actorRole === 'AGENT' ? '#15803D' : '#4B5563',
+                              border: `1px solid ${log.actorRole === 'ADMIN' ? '#FCA5A5' : log.actorRole === 'AGENT' ? '#86EFAC' : '#E5E7EB'}`
+                            }}
+                          >
                             {log.actorRole || 'SYSTEM'}
                           </span>
                         </td>
@@ -1493,11 +1690,11 @@ export const AdminDashboardPage = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Total Vacancies</label>
+                <label className="form-label">Total Vacancies (Optional)</label>
                 <input
                   type="number"
                   className="form-control"
-                  placeholder="e.g. 2536"
+                  placeholder="e.g. 2536 or leave blank for exam/merit based (e.g. GATE/JEE/STET)"
                   value={newJob.vacancies}
                   onChange={(e) => setNewJob({ ...newJob, vacancies: e.target.value })}
                 />
@@ -1982,13 +2179,75 @@ export const AdminDashboardPage = () => {
           title="Dispatch Desk Specialist & Meeting Link"
         >
           <div>
+            {selectedSession?.isUrgent && (
+              <div style={{
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem 1rem',
+                fontSize: '0.82rem',
+                color: '#991B1B',
+                marginBottom: '1rem'
+              }}>
+                <strong>⚡ Priority / Urgent Request (₹{selectedSession.priorityFee || 99}):</strong>
+                <div>Candidate Deadline Note: "{selectedSession.urgencyReason}"</div>
+              </div>
+            )}
+
+            {agentsList.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ marginBottom: '0.35rem', display: 'block' }}>
+                  Pick Available Specialist (Live Status):
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '120px', overflowY: 'auto' }}>
+                  {agentsList.map((ag) => {
+                    const isIdle = ag.profile?.agentStatus !== 'ASSISTING';
+                    const name = ag.profile?.fullName || ag.email;
+                    const isPicked = agentName === name;
+                    return (
+                      <button
+                        type="button"
+                        key={ag.id}
+                        onClick={() => setAgentName(name)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.3rem 0.65rem',
+                          borderRadius: 'var(--radius-sm)',
+                          border: isPicked ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                          backgroundColor: isPicked ? 'var(--color-primary-subtle)' : isIdle ? '#F0FDF4' : '#FEF2F2',
+                          color: isPicked ? 'var(--color-primary)' : 'var(--color-text-title)',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <span style={{
+                          width: '7px',
+                          height: '7px',
+                          borderRadius: '50%',
+                          backgroundColor: isIdle ? '#10B981' : '#EF4444',
+                          display: 'inline-block'
+                        }} />
+                        <strong>{name}</strong>
+                        <span style={{ fontSize: '0.7rem', color: isIdle ? '#16A34A' : '#DC2626', fontWeight: 600 }}>
+                          ({isIdle ? 'Idle' : 'Busy'})
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="form-group">
-              <label className="form-label">Specialist Desk Officer Name</label>
+              <label className="form-label">Specialist Desk Officer Name *</label>
               <input
                 type="text"
                 className="form-control"
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
+                placeholder="Click an agent above or enter name..."
                 required
               />
             </div>

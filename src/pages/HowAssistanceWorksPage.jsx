@@ -19,10 +19,10 @@ import {
 const STEPS = [
   {
     step: 1,
-    title: 'Select Job Notice & Book Assistance Slot',
+    title: 'Choose Exam Notice & Select Target Booking Date',
     icon: Calendar,
     color: 'var(--color-primary)',
-    desc: 'Browse active government recruitment notices on maxEvoG. Click "Apply Assisted", select an available time slot, and confirm booking for flat ₹69 (or ₹0 for Pro Club Members).'
+    desc: 'Browse active recruitment notices or enter an unlisted exam ("Other"). Pick an available booking date based on daily desk capacity for flat ₹69 (or ₹0 for Pro Club members), or submit an Urgent Request (₹99) if daily capacity is reached.'
   },
   {
     step: 2,

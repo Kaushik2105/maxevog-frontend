@@ -79,6 +79,8 @@ export const AgentDashboardPage = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'applications' | 'history'
+  const [agentStatus, setAgentStatus] = useState(user?.profile?.agentStatus || 'IDLE');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Workbench active session
   const [activeSession, setActiveSession] = useState(null);
@@ -318,6 +320,9 @@ export const AgentDashboardPage = () => {
 
       if (dashRes.data?.success) {
         setDashboardData(dashRes.data.data);
+        if (dashRes.data.data.agentStatus) {
+          setAgentStatus(dashRes.data.data.agentStatus);
+        }
       }
       if (sessionsRes.data?.success) {
         const list = sessionsRes.data.data.sessions || [];
@@ -335,6 +340,22 @@ export const AgentDashboardPage = () => {
       console.error('Failed to load agent dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (newStatus) => {
+    if (updatingStatus || agentStatus === newStatus) return;
+    setUpdatingStatus(true);
+    try {
+      const res = await agentApi.updateAvailability({ agentStatus: newStatus });
+      if (res.data?.success) {
+        setAgentStatus(newStatus);
+        setNotification(`Live Desk status updated to ${newStatus === 'IDLE' ? 'IDLE (Available for candidate bookings)' : 'ASSISTING (Busy on live desk call)'}`);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update agent status');
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -374,6 +395,11 @@ export const AgentDashboardPage = () => {
     try {
       await agentApi.updateSession(activeSession.id, { status });
       setNotification(`Session marked as ${status}`);
+      if (status === 'IN_PROGRESS') {
+        handleToggleStatus('ASSISTING');
+      } else if (status === 'COMPLETED') {
+        handleToggleStatus('IDLE');
+      }
       loadData();
     } catch (err) {
       alert('Could not update session status');
@@ -445,6 +471,83 @@ export const AgentDashboardPage = () => {
             <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
               Officer: <strong>{user?.name || user?.email}</strong> • Assigned Sector: Central & State Public Commissions
             </p>
+
+            {/* Live Availability Toggle: Idle (Green) vs Assisting (Red) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-text-title)' }}>
+                Desk Availability:
+              </span>
+              <div style={{
+                display: 'inline-flex',
+                backgroundColor: '#F3F4F6',
+                padding: '0.25rem',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid var(--color-border)',
+                gap: '0.25rem'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus('IDLE')}
+                  disabled={updatingStatus}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.35rem 0.9rem',
+                    borderRadius: 'var(--radius-full)',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    backgroundColor: agentStatus === 'IDLE' ? '#10B981' : 'transparent',
+                    color: agentStatus === 'IDLE' ? '#FFFFFF' : '#4B5563',
+                    boxShadow: agentStatus === 'IDLE' ? '0 1px 3px rgba(16, 185, 129, 0.4)' : 'none',
+                  }}
+                  title="Mark yourself Idle & ready to accept assistance requests"
+                >
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: agentStatus === 'IDLE' ? '#FFFFFF' : '#10B981',
+                    display: 'inline-block'
+                  }} />
+                  <span>Idle (Available)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus('ASSISTING')}
+                  disabled={updatingStatus}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.35rem 0.9rem',
+                    borderRadius: 'var(--radius-full)',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    backgroundColor: agentStatus === 'ASSISTING' ? '#EF4444' : 'transparent',
+                    color: agentStatus === 'ASSISTING' ? '#FFFFFF' : '#4B5563',
+                    boxShadow: agentStatus === 'ASSISTING' ? '0 1px 3px rgba(239, 68, 68, 0.4)' : 'none',
+                  }}
+                  title="Mark yourself Assisting & busy with candidate session"
+                >
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: agentStatus === 'ASSISTING' ? '#FFFFFF' : '#EF4444',
+                    display: 'inline-block'
+                  }} />
+                  <span>Assisting (Busy)</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -607,8 +710,20 @@ export const AgentDashboardPage = () => {
                   Candidate: {activeSession.User?.profile?.fullName || activeSession.User?.email || 'Registered Aspirant'}
                 </h2>
                 <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                  Target Exam: <strong>{activeSession.Job?.title || 'Public Recruitment Examination'}</strong> ({activeSession.Job?.organization})
+                  Target Exam: <strong>{activeSession.customExamTitle || activeSession.Job?.title || 'Public Recruitment Examination'}</strong> {activeSession.Job?.organization ? `(${activeSession.Job.organization})` : '(Custom Candidate Exam)'}
                 </div>
+                {activeSession.isUrgent && (
+                  <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span className="badge" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #F87171', fontWeight: 700, fontSize: '0.75rem' }}>
+                      ⚡ PRIORITY / URGENT (₹{activeSession.priorityFee || 99})
+                    </span>
+                    {activeSession.urgencyReason && (
+                      <span style={{ fontSize: '0.8rem', color: '#991B1B' }}>
+                        <strong>Urgent Note:</strong> "{activeSession.urgencyReason}"
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Status Controls */}
@@ -884,21 +999,31 @@ export const AgentDashboardPage = () => {
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
-                          <span className={`badge ${item.status === 'IN_PROGRESS' ? 'badge-urgent' : item.status === 'COMPLETED' ? 'badge-official' : 'badge-primary'}`}>
-                            {item.status || 'SCHEDULED'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+                          <span className={`badge ${item.status === 'IN_PROGRESS' ? 'badge-urgent' : item.status === 'COMPLETED' ? 'badge-official' : item.status === 'URGENT_PENDING_REVIEW' ? 'badge-urgent' : 'badge-primary'}`}>
+                            {item.status === 'URGENT_PENDING_REVIEW' ? 'URGENT REVIEW' : (item.status || 'SCHEDULED')}
                           </span>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                            Slot: {item.timeSlot?.startTime || 'Morning Desk'}
+                          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Clock size={12} /> {item.bookingDate ? new Date(item.bookingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : (item.date || 'Today')}
                           </span>
+                          {item.isUrgent && (
+                            <span className="badge" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #F87171', fontWeight: 700, fontSize: '0.72rem' }}>
+                              ⚡ URGENT (₹{item.priorityFee || 99})
+                            </span>
+                          )}
                         </div>
 
                         <h4 style={{ fontSize: '1.05rem', color: 'var(--color-text-title)', margin: '0 0 0.25rem 0' }}>
                           {item.User?.profile?.fullName || item.User?.email || 'Candidate'}
                         </h4>
                         <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                          Exam: <strong>{item.Job?.title || 'Recruitment Exam'}</strong> ({item.Job?.organization})
+                          Exam: <strong>{item.customExamTitle || item.Job?.title || 'Recruitment Exam'}</strong> {item.Job?.organization ? `(${item.Job.organization})` : '(Custom Candidate Exam)'}
                         </div>
+                        {item.urgencyReason && (
+                          <div style={{ fontSize: '0.78rem', color: '#DC2626', marginTop: '0.25rem' }}>
+                            <strong>Urgency Note:</strong> "{item.urgencyReason}"
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1090,14 +1215,13 @@ export const AgentDashboardPage = () => {
 
             <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
-                <label className="form-label">Total Vacancies *</label>
+                <label className="form-label">Total Vacancies (Optional)</label>
                 <input
                   type="number"
                   className="form-control"
-                  placeholder="e.g. 17727"
+                  placeholder="e.g. 17727 or blank for exam"
                   value={newJob.vacancies}
                   onChange={(e) => setNewJob({ ...newJob, vacancies: e.target.value })}
-                  required
                 />
               </div>
               <div className="form-group">

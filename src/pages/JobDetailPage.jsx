@@ -109,7 +109,7 @@ export const JobDetailPage = () => {
           { key: 'Recruitment Authority / Commission', value: job.organization || 'Official Commission' },
           { key: 'Official Examination Name', value: job.title },
           { key: 'Department / Ministry', value: job.department || 'Central / State Govt Ministries & Departments' },
-          { key: 'Total Advertised Vacancies', value: job.vacancies ? `${job.vacancies.toLocaleString('en-IN')} Posts` : 'Refer Official Gazette' },
+          { key: 'Total Advertised Vacancies', value: job.vacancies ? `${job.vacancies.toLocaleString('en-IN')} Posts` : 'Exam / Merit Based' },
           { key: 'Application Last Date', value: job.lastDate ? new Date(job.lastDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'To Be Announced' },
           { key: 'Minimum Age Limit', value: job.ageMin ? `${job.ageMin} Years` : '18 Years' },
           { key: 'Maximum Age Limit', value: job.ageMax ? `${job.ageMax} Years` : '27 to 32 Years (Relaxation as per rules)' },
@@ -231,7 +231,11 @@ export const JobDetailPage = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Users size={18} color="var(--color-primary)" />
                 <span style={{ fontSize: '0.95rem' }}>
-                  <strong>{job.vacancies ? job.vacancies.toLocaleString('en-IN') : 'N/A'}</strong> Total Vacancies
+                  {job.vacancies ? (
+                    <><strong>{job.vacancies.toLocaleString('en-IN')}</strong> Total Vacancies</>
+                  ) : (
+                    <strong>Exam / Merit Based</strong>
+                  )}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -50,16 +50,16 @@ export const RefundPolicyPage = () => {
             </div>
             <ul style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', margin: 0, fontSize: '0.88rem', color: 'var(--color-text-body)' }}>
               <li>
-                <strong>Desk Agent Technical Error:</strong> Official application rejected solely due to a documented transcription or entry error made by our assigned specialist contrary to candidate instructions.
+                <strong>Desk Specialist Technical Fault:</strong> Application rejected by recruitment authorities solely due to a documented transcription error made by our desk agent contrary to explicit candidate inputs.
               </li>
               <li>
-                <strong>MaxEvoG Platform Outage:</strong> Inability to deliver an allocated desk assistant prior to the official government recruitment deadline due to our internal infrastructure failure.
+                <strong>MaxEvoG Platform Outage:</strong> Inability to deliver an allocated desk assistant prior to the official government recruitment deadline due to our internal system outage.
               </li>
               <li>
-                <strong>Duplicate Payment:</strong> Multiple payment debits or gateway errors for the same booking session.
+                <strong>Duplicate Charge:</strong> Multiple payment debits or gateway errors for the same assistance request.
               </li>
               <li>
-                <strong>Advance Cancellation:</strong> Cancellation requested at least 4 hours prior to the scheduled assistance slot.
+                <strong>Advance Cancellation:</strong> Standard assistance cancellation initiated at least 4 hours prior to desk operating hours on the booked date.
               </li>
             </ul>
           </div>
@@ -74,19 +74,19 @@ export const RefundPolicyPage = () => {
             </div>
             <ul style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', margin: 0, fontSize: '0.88rem', color: 'var(--color-text-body)' }}>
               <li>
-                <strong>Late Cancellation or No-Show:</strong> Cancellation initiated within 2 hours of the slot start time, or candidate failing to join the Google Meet session.
+                <strong>Urgent / Priority Triage Fee (₹30):</strong> For Urgent Requests (₹99), once a specialist has accepted and initiated expedited review of your application, the ₹30 priority surcharge is non-refundable.
               </li>
               <li>
-                <strong>Candidate Hardware / Internet Outage:</strong> Disconnections or device freezes on candidate's end exceeding the 1-hour grace window where the agent was ready.
+                <strong>Candidate No-Show or Late Cancellation:</strong> Cancellation initiated less than 2 hours before scheduled session or failure to join the Google Meet call.
               </li>
               <li>
-                <strong>Wrong OTP / Password Lockout:</strong> Session aborted due to candidate entering repeated incorrect OTPs or credentials, causing portal temporary ban.
+                <strong>Candidate Hardware / Internet Outage:</strong> Disconnections on candidate's end exceeding the 1-hour live grace window.
               </li>
               <li>
-                <strong>Board Eligibility Rejection:</strong> Form rejection by the government board due to candidate's age criteria, education mismatch, or invalid certificates.
+                <strong>Wrong OTP / Password Lockout:</strong> Portal bans or lockouts caused by repeated incorrect OTP or password inputs by the candidate.
               </li>
               <li>
-                <strong>Official Government Exam Fees:</strong> Fees paid directly to the government recruitment portal (e.g. UPSC / SSC / IBPS) are strictly subject to the respective board's rules.
+                <strong>Official Government Exam Fees:</strong> Fees paid directly to government examination boards (e.g. UPSC / SSC / IBPS) are strictly non-refundable through maxEvoG.
               </li>
             </ul>
           </div>
@@ -96,19 +96,22 @@ export const RefundPolicyPage = () => {
         <div className="card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <section>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <CreditCard size={20} /> 1. Fee Structure Breakdown
+              <CreditCard size={20} /> 1. Fee Structure Breakdown (Standard ₹69 vs Urgent ₹99)
             </h2>
+            <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: '0 0 0.75rem 0' }}>
+              The flat <strong>₹69 Assisted Desk Fee</strong> (or ₹0 for <strong>Pro Club Members</strong>) covers dedicated, one-on-one professional form filling assistance, document resizing, and live remote guidance on your chosen date.
+            </p>
             <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: 0 }}>
-              The flat <strong>₹69 Assisted Desk Fee</strong> (or ₹0 for <strong>Pro Club Members</strong>) pays exclusively for dedicated, one-on-one professional form filling assistance, document compression, and live remote guidance provided by our trained specialists. It does <em>not</em> encompass official application charges levied by government commissions (which candidates pay directly on the official portal during the live handoff step).
+              The <strong>₹99 Urgent / Priority Fee</strong> includes the ₹69 base service charge plus a ₹30 priority allocation fee for dates where standard daily desk capacity is exhausted or the recruitment deadline closes within 24–48 hours. Official portal examination charges are paid directly by candidates on the official board website during the live handoff step.
             </p>
           </section>
 
           <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <Clock size={20} /> 2. Re-scheduling & Disconnection Grace Window
+              <Clock size={20} /> 2. Date Rescheduling & Disconnection Grace Window
             </h2>
             <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: 0 }}>
-              If your remote session is interrupted due to unexpected power failure or network loss, maxEvoG holds your session active for <strong>30 minutes to 1 hour</strong>. If the connection cannot be restored within this window, you may request one complimentary re-slot within 24 hours rather than forfeiting your booking.
+              If your remote session is interrupted due to power failure or network disruption, maxEvoG holds your session active for <strong>30 minutes to 1 hour</strong>. If personal circumstances prevent attendance on your booked date, you may request one complimentary date rescheduling with at least <strong>4 hours advance notice</strong>, subject to desk capacity.
             </p>
           </section>
 

@@ -22,8 +22,9 @@ export const adminApi = {
   createAdmitCard: (data) => apiClient.post('/admin/admit-cards', data),
   deleteAdmitCard: (id) => apiClient.delete(`/admin/admit-cards/${id}`),
 
-  // Assistance & Time Slots
-  createTimeSlots: (data) => apiClient.post('/admin/time-slots', data),
+  // Assistance & Daily Limits
+  getDailyLimits: (params) => apiClient.get('/admin/assistance/daily-limits', { params }),
+  updateDailyLimit: (data) => apiClient.put('/admin/assistance/daily-limits', data),
   getAssistanceSessions: (params) => apiClient.get('/admin/assistance', { params }),
   assignAssistant: (id, data) => apiClient.patch(`/admin/assistance/${id}/assign`, data),
 

@@ -109,15 +109,21 @@ export const TermsPage = () => {
           {/* Section 3: Service Fee & Direct Payment */}
           <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <Scale size={20} /> 3. Transparent Flat ₹69 Service Charge & Direct Candidate Portal Payment
+              <Scale size={20} /> 3. Transparent Service Fees, Daily Desk Capacity & Urgent Assistance
             </h2>
             <div style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem' }}>
               <p style={{ margin: '0 0 1rem 0' }}>
-                To avoid confusion arising from varying candidate category fee structures (e.g., ₹0 for SC, ST, PwD, and female candidates vs. full fees for General/OBC candidates), maxEvoG adheres to an absolute separation between technical service fees and government examination fees:
+                maxEvoG provides human-guided cyber desk assistance governed by daily desk capacity limits rather than rigid hourly time slots. To avoid confusion arising from varying candidate category fee structures, maxEvoG adheres to an absolute separation between technical service fees and government examination fees:
               </p>
               <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', margin: 0 }}>
                 <li>
-                  <strong>maxEvoG Only Collects Flat ₹69 Service Charge:</strong> When reserving a 1-on-1 cyber desk assistance session, candidates pay solely maxEvoG's flat service charge of ₹69 (or ₹0 for active maxEvoG Pro Club members).
+                  <strong>Standard Assisted Desk Fee (₹69):</strong> Candidates select a target booking date governed by daily desk capacity limits. Standard assistance is charged at a flat ₹69 service fee (or ₹0 for active maxEvoG Pro Club members).
+                </li>
+                <li>
+                  <strong>Urgent / Priority Assistance (₹99):</strong> If the daily desk capacity for a desired date is full, or if the official board closing date is imminent (within 24–48 hours), candidates may submit an <em>Urgent Request</em> for a total of ₹99 (comprising the ₹69 base service fee + a ₹30 urgency priority surcharge; or flat ₹30 for Pro Club members). Urgent requests are placed in our expedited triage queue for immediate desk specialist review.
+                </li>
+                <li>
+                  <strong>Unlisted & Custom Exams ("Other"):</strong> Candidates may request assistance for any recruitment or competitive examination (e.g. GATE, JEE, State PSCs, STET) by selecting "Other (not available on maxEvoG)" and specifying the official examination name.
                 </li>
                 <li>
                   <strong>Direct Candidate Board Payment:</strong> Candidates are solely responsible for paying their official application fee directly on the government recruitment portal (via their own UPI, debit card, or net banking) during the live session handoff.
@@ -151,17 +157,20 @@ export const TermsPage = () => {
           {/* Section 5 */}
           <section style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1.75rem' }}>
             <h2 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <RefreshCw size={20} /> 5. Reconnection Protocol & Technical Disruptions
+              <RefreshCw size={20} /> 5. Reconnection Protocol, Date Rescheduling & Technical Disruptions
             </h2>
             <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: '0 0 1rem 0' }}>
-              We understand that power fluctuations, ISP downtimes, or system reboots may occur. In the event of an unexpected disconnection during a live assistance session:
+              We understand that power fluctuations, ISP downtimes, or system reboots may occur. In the event of an unexpected disruption:
             </p>
             <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: 0, fontSize: '0.92rem' }}>
               <li>
-                <strong>30 to 60 Minutes Grace Window:</strong> The assigned desk specialist will keep the session queue active for up to <strong>30 minutes to 1 hour</strong> to permit the candidate to reboot their device, restore their internet connection, and regenerate a new Chrome Remote Desktop code.
+                <strong>30 to 60 Minutes Live Grace Window:</strong> The assigned desk specialist will keep the session queue active for up to <strong>30 minutes to 1 hour</strong> to permit the candidate to reboot their device, restore internet connection, and regenerate a new Chrome Remote Desktop access code.
               </li>
               <li>
-                <strong>Slot Rescheduling:</strong> If severe line failure persists beyond 1 hour on the candidate's side, maxEvoG will offer one complimentary rescheduling slot within 24 hours, subject to availability prior to the official board closure date.
+                <strong>Date Rescheduling:</strong> If unexpected circumstances prevent you from attending on your booked date, you may reschedule your session to another available date free of charge by notifying platform support at least <strong>4 hours prior</strong> to desk operating hours.
+              </li>
+              <li>
+                <strong>Candidate Final Consent Mandate:</strong> The desk specialist provides transcription and technical resizing assistance. The candidate is legally mandated to inspect every entered field on the final application preview screen before clicking final submission.
               </li>
             </ul>
           </section>

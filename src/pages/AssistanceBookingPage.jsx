@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { jobsApi } from '../api/jobs.api';
-import { timeSlotsApi } from '../api/timeSlots.api';
 import { assistanceApi } from '../api/assistance.api';
 import { useAuth } from '../context/AuthContext';
+import { Modal } from '../components/Modal';
 import { 
   Calendar, 
-  Clock, 
   ShieldCheck, 
   CheckCircle2, 
   Video, 
   Sparkles, 
   AlertTriangle, 
   Info, 
-  ArrowLeft 
+  ArrowLeft,
+  Clock,
+  Zap,
+  Check
 } from 'lucide-react';
 
 export const AssistanceBookingPage = () => {
@@ -26,18 +28,24 @@ export const AssistanceBookingPage = () => {
   const [jobs, setJobs] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState(preselectedJobId || '');
   const [selectedJob, setSelectedJob] = useState(null);
+  const [customExamTitle, setCustomExamTitle] = useState('');
 
-  // 7-day selector
+  // 7-day selector & daily capacity availability
   const [availableDates, setAvailableDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
-  const [slots, setSlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [availabilityMap, setAvailabilityMap] = useState({});
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
 
   // Security / Trust confirmation checkboxes
   const [consentCreds, setConsentCreds] = useState(false);
   const [consentAuthorization, setConsentAuthorization] = useState(false);
   const [bookingNotes, setBookingNotes] = useState('');
+
+  // Urgent Request Modal State
+  const [showUrgentModal, setShowUrgentModal] = useState(false);
+  const [urgencyReason, setUrgencyReason] = useState('');
+  const [submittingUrgent, setSubmittingUrgent] = useState(false);
+  const [urgentError, setUrgentError] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -49,8 +57,9 @@ export const AssistanceBookingPage = () => {
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
+      const isoDate = d.toISOString().split('T')[0];
       dates.push({
-        full: d.toISOString().split('T')[0],
+        full: isoDate,
         dayName: d.toLocaleDateString('en-IN', { weekday: 'short' }),
         dayNum: d.getDate(),
         month: d.toLocaleDateString('en-IN', { month: 'short' })
@@ -70,9 +79,12 @@ export const AssistanceBookingPage = () => {
           setJobs(list);
           if (preselectedJobId) {
             const found = list.find((j) => String(j.id) === String(preselectedJobId));
-            if (found) setSelectedJob(found);
+            if (found) {
+              setSelectedJob(found);
+              setSelectedJobId(String(found.id));
+            }
           } else if (list.length > 0) {
-            setSelectedJobId(list[0].id);
+            setSelectedJobId(String(list[0].id));
             setSelectedJob(list[0]);
           }
         }
@@ -85,62 +97,69 @@ export const AssistanceBookingPage = () => {
 
   // Update selected job object when selectedJobId changes
   useEffect(() => {
-    if (selectedJobId && jobs.length > 0) {
+    if (selectedJobId === 'OTHER') {
+      setSelectedJob(null);
+    } else if (selectedJobId && jobs.length > 0) {
       const found = jobs.find((j) => String(j.id) === String(selectedJobId));
       setSelectedJob(found || null);
     }
   }, [selectedJobId, jobs]);
 
-  // Fetch time slots when selectedDate changes
+  // Fetch live daily capacity availability
   useEffect(() => {
-    if (!selectedDate) return;
-    const fetchSlots = async () => {
-      setLoadingSlots(true);
-      setSelectedSlot(null);
+    if (availableDates.length === 0) return;
+    const fetchAvailability = async () => {
+      setLoadingAvailability(true);
       try {
-        const res = await timeSlotsApi.getAvailableSlots(selectedDate);
-        if (res.data?.success && res.data.data?.length > 0) {
-          setSlots(res.data.data);
-        } else {
-          // Fallback realistic time slots
-          setSlots([
-            { id: `slot-1-${selectedDate}`, startTime: '10:00 AM', endTime: '10:45 AM', available: true },
-            { id: `slot-2-${selectedDate}`, startTime: '11:30 AM', endTime: '12:15 PM', available: true },
-            { id: `slot-3-${selectedDate}`, startTime: '02:00 PM', endTime: '02:45 PM', available: true },
-            { id: `slot-4-${selectedDate}`, startTime: '03:30 PM', endTime: '04:15 PM', available: true },
-            { id: `slot-5-${selectedDate}`, startTime: '05:00 PM', endTime: '05:45 PM', available: true },
-            { id: `slot-6-${selectedDate}`, startTime: '06:30 PM', endTime: '07:15 PM', available: true },
-          ]);
+        const startDate = availableDates[0].full;
+        const res = await assistanceApi.getAvailability({ startDate, days: 7 });
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          const map = {};
+          res.data.data.forEach((item) => {
+            map[item.date] = item;
+          });
+          setAvailabilityMap(map);
         }
       } catch (err) {
-        // Fallback slots on network/server error
-        setSlots([
-          { id: `slot-1-${selectedDate}`, startTime: '10:00 AM', endTime: '10:45 AM', available: true },
-          { id: `slot-2-${selectedDate}`, startTime: '02:00 PM', endTime: '02:45 PM', available: true },
-          { id: `slot-3-${selectedDate}`, startTime: '05:00 PM', endTime: '05:45 PM', available: true },
-        ]);
+        console.error('Failed to load daily availability:', err);
       } finally {
-        setLoadingSlots(false);
+        setLoadingAvailability(false);
       }
     };
-    fetchSlots();
-  }, [selectedDate]);
+    fetchAvailability();
+  }, [availableDates]);
+
+  // Current selected date availability
+  const currentAvail = availabilityMap[selectedDate] || {
+    limit: 10,
+    bookedCount: 0,
+    remaining: 10,
+    isFull: false
+  };
+
+  const isSelectedDateFull = currentAvail.isFull || currentAvail.remaining <= 0;
 
   const handleBooking = async (e) => {
     e.preventDefault();
     if (submitting) return;
+
     if (!isAuthenticated) {
-      navigate('/', { replace: true });
+      navigate('/login', { state: { from: `/assistance/book${selectedJobId ? `?jobId=${selectedJobId}` : ''}` } });
       return;
     }
 
     if (!selectedJobId) {
-      setError('Please select a recruitment opening');
+      setError('Please select a recruitment opening or choose "Other"');
       return;
     }
 
-    if (!selectedSlot) {
-      setError('Please choose a time slot for the assisted session');
+    if (selectedJobId === 'OTHER' && !customExamTitle.trim()) {
+      setError('Please specify the government examination name');
+      return;
+    }
+
+    if (isSelectedDateFull) {
+      setShowUrgentModal(true);
       return;
     }
 
@@ -154,32 +173,74 @@ export const AssistanceBookingPage = () => {
 
     try {
       const res = await assistanceApi.bookSession({
-        jobId: selectedJobId,
+        jobId: selectedJobId === 'OTHER' ? null : selectedJobId,
+        customExamTitle: selectedJobId === 'OTHER' ? customExamTitle.trim() : undefined,
+        bookingDate: selectedDate,
         date: selectedDate,
-        timeSlot: `${selectedSlot.startTime} - ${selectedSlot.endTime}`,
-        timeSlotId: selectedSlot.id,
         notes: bookingNotes,
       });
 
       if (res.data?.success) {
-        // Redirect to applications list or session detail
         navigate('/applications', {
-          state: { message: 'Assistance session confirmed! Your specialist will connect via Google Meet.' }
+          state: { message: 'Assistance session confirmed! Your desk specialist will connect on the scheduled date.' }
         });
       } else {
-        setError(res.data?.message || 'Booking could not be confirmed');
+        if (res.data?.code === 'CAPACITY_REACHED') {
+          setShowUrgentModal(true);
+        } else {
+          setError(res.data?.message || 'Booking could not be confirmed');
+        }
       }
     } catch (err) {
-      // If mock backend succeeds or fails with standard message
-      setError(err.response?.data?.message || err.message || 'Booking failed');
+      if (err.response?.data?.code === 'CAPACITY_REACHED') {
+        setShowUrgentModal(true);
+      } else {
+        setError(err.response?.data?.message || err.message || 'Booking failed');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleUrgentSubmit = async (e) => {
+    e.preventDefault();
+    if (submittingUrgent) return;
+
+    if (!urgencyReason.trim()) {
+      setUrgentError('Please explain why your application assistance request is urgent (e.g. imminent deadline).');
+      return;
+    }
+
+    setUrgentError('');
+    setSubmittingUrgent(true);
+
+    try {
+      const res = await assistanceApi.submitUrgentRequest({
+        jobId: selectedJobId === 'OTHER' ? null : selectedJobId,
+        customExamTitle: selectedJobId === 'OTHER' ? customExamTitle.trim() : undefined,
+        bookingDate: selectedDate,
+        date: selectedDate,
+        urgencyReason: urgencyReason.trim(),
+        notes: bookingNotes,
+      });
+
+      if (res.data?.success) {
+        setShowUrgentModal(false);
+        navigate('/applications', {
+          state: { message: 'Priority / Urgent request submitted successfully! An idle desk specialist will review and accept your session shortly.' }
+        });
+      } else {
+        setUrgentError(res.data?.message || 'Failed to submit urgent request');
+      }
+    } catch (err) {
+      setUrgentError(err.response?.data?.message || err.message || 'Failed to submit urgent request');
+    } finally {
+      setSubmittingUrgent(false);
+    }
+  };
+
   const govtFee = selectedJob?.fee || 0;
-  const assistanceFee = isPro ? 0 : 69; // Pro members get free assistance
-  const totalAmount = assistanceFee; // Only pay the flat 69 desk assistance fee to maxEvoG
+  const standardFee = isPro ? 0 : 69;
 
   return (
     <div style={{ padding: '2.5rem 0 4rem' }}>
@@ -200,11 +261,11 @@ export const AssistanceBookingPage = () => {
             Book Assisted Application Session
           </h1>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem', lineHeight: 1.5, margin: 0 }}>
-            Connect with an expert over Google Meet. We navigate complex board forms, resize documents, and verify all details live before submission.
+            Connect with a verified specialist over Google Meet. We navigate complex board forms, resize documents, and verify all details live before submission.
           </p>
         </div>
 
-        {/* Startup Trust Guarantee Banner */}
+        {/* Security & Zero Storage Guarantee Banner */}
         <div style={{
           backgroundColor: 'var(--color-accent-subtle)',
           border: '1px solid var(--color-accent-border)',
@@ -256,25 +317,55 @@ export const AssistanceBookingPage = () => {
               {/* Step 1: Select Recruitment Opening */}
               <div className="card" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.1rem', color: 'var(--color-primary)', marginBottom: '1rem' }}>
-                  1. Choose Recruitment Opening
+                  1. Choose Target Examination / Commission
                 </h3>
 
                 <div className="form-group">
-                  <label className="form-label">Target Examination / Commission</label>
+                  <label className="form-label">Target Examination</label>
                   <select
                     className="form-control form-select"
                     value={selectedJobId}
-                    onChange={(e) => setSelectedJobId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedJobId(e.target.value);
+                      if (e.target.value !== 'OTHER') {
+                        setCustomExamTitle('');
+                      }
+                    }}
                     required
                   >
                     <option value="">-- Select an active recruitment --</option>
                     {jobs.map((j) => (
                       <option key={j.id} value={j.id}>
-                        {j.organization} - {j.title} (Vacancies: {j.vacancies || 'Open'})
+                        {j.organization} - {j.title} {j.vacancies ? `(${j.vacancies.toLocaleString('en-IN')} Posts)` : '(Exam / Merit Based)'}
                       </option>
                     ))}
+                    <option value="OTHER" style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>
+                      Other (Not available on maxEvoG)
+                    </option>
                   </select>
                 </div>
+
+                {/* Custom exam input if "OTHER" selected */}
+                {selectedJobId === 'OTHER' && (
+                  <div className="form-group" style={{ marginTop: '1rem' }}>
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Zap size={14} color="var(--color-secondary)" />
+                      <span>Specify Government Exam / Commission Name *</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. Bihar STET 2026, GATE 2026, JEE Advanced, Indian Navy MR, NDA, CDS..."
+                      value={customExamTitle}
+                      onChange={(e) => setCustomExamTitle(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.35rem' }}>
+                      We assist with any Central or State Government application even if not yet cataloged on maxEvoG.
+                    </div>
+                  </div>
+                )}
 
                 {selectedJob && (
                   <div style={{
@@ -285,7 +376,8 @@ export const AssistanceBookingPage = () => {
                     fontSize: '0.82rem',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.3rem'
+                    gap: '0.3rem',
+                    marginTop: '0.75rem'
                   }}>
                     <div><strong>Department:</strong> {selectedJob.department || 'Central/State Service'}</div>
                     <div><strong>Last Date:</strong> {selectedJob.lastDate ? new Date(selectedJob.lastDate).toLocaleDateString('en-IN') : 'TBA'}</div>
@@ -294,24 +386,37 @@ export const AssistanceBookingPage = () => {
                 )}
               </div>
 
-              {/* Step 2: Choose 7-Day Date & Slot */}
+              {/* Step 2: Choose 7-Day Date & Daily Capacity */}
               <div className="card" style={{ padding: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>
-                  2. Select Session Date & Time
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', color: 'var(--color-primary)', margin: 0 }}>
+                    2. Select Assistance Session Date
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    Daily Desk Capacity Limits Apply
+                  </span>
+                </div>
                 <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-                  Choose a date in the next 7 days when you are at your laptop with your certificates ready.
+                  Select an upcoming date when you will be at your device with your certificates and photo ready.
                 </p>
 
-                {/* 7-Day Horizontal Scroll/Pills */}
+                {/* 7-Day Horizontal Grid with Live Capacity Badges */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(65px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(75px, 1fr))',
                   gap: '0.5rem',
-                  marginBottom: '1.5rem'
+                  marginBottom: '1.25rem'
                 }}>
                   {availableDates.map((d) => {
                     const isSelected = selectedDate === d.full;
+                    const avail = availabilityMap[d.full] || {
+                      limit: 10,
+                      bookedCount: 0,
+                      remaining: 10,
+                      isFull: false
+                    };
+                    const isFull = avail.isFull || avail.remaining <= 0;
+
                     return (
                       <button
                         type="button"
@@ -323,68 +428,116 @@ export const AssistanceBookingPage = () => {
                           alignItems: 'center',
                           padding: '0.65rem 0.25rem',
                           borderRadius: 'var(--radius-md)',
-                          border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                          backgroundColor: isSelected ? 'var(--color-primary-subtle)' : '#FFFFFF',
+                          border: isSelected 
+                            ? '2px solid var(--color-primary)' 
+                            : isFull 
+                            ? '1px solid #FECACA' 
+                            : '1px solid var(--color-border)',
+                          backgroundColor: isSelected 
+                            ? 'var(--color-primary-subtle)' 
+                            : isFull 
+                            ? '#FEF2F2' 
+                            : '#FFFFFF',
                           color: isSelected ? 'var(--color-primary)' : 'var(--color-text-title)',
-                          transition: 'all var(--transition-fast)'
+                          transition: 'all var(--transition-fast)',
+                          cursor: 'pointer',
+                          position: 'relative'
                         }}
                       >
                         <span style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>
                           {d.dayName}
                         </span>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0.2rem 0' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0.15rem 0' }}>
                           {d.dayNum}
                         </span>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', marginBottom: '0.35rem' }}>
                           {d.month}
                         </span>
+
+                        {/* Capacity Badge */}
+                        {isFull ? (
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            color: '#DC2626',
+                            backgroundColor: '#FEE2E2',
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '4px'
+                          }}>
+                            Full
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 600,
+                            color: '#16A34A',
+                            backgroundColor: '#DCFCE7',
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '4px'
+                          }}>
+                            {avail.remaining} left
+                          </span>
+                        )}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Available Slots */}
-                <div className="form-label" style={{ marginBottom: '0.5rem' }}>
-                  Available Specialist Slots ({selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''})
-                </div>
-
-                {loadingSlots ? (
-                  <div style={{ padding: '1rem 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                    Loading available desk slots...
+                {/* Selected Date Status Alert */}
+                {isSelectedDateFull ? (
+                  <div style={{
+                    backgroundColor: '#FEF2F2',
+                    border: '1px solid #FCA5A5',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.85rem 1rem',
+                    fontSize: '0.82rem',
+                    color: '#991B1B',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
+                      <AlertTriangle size={16} color="#DC2626" />
+                      <span>Daily Assistance Capacity Reached ({currentAvail.limit}/{currentAvail.limit} slots booked)</span>
+                    </div>
+                    <div>
+                      Standard bookings are full for {new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. You can choose another date, or submit an <strong>Urgent / Priority Assistance Request (₹99)</strong> if your deadline is imminent.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowUrgentModal(true)}
+                      className="btn btn-sm"
+                      style={{
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        alignSelf: 'flex-start',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontWeight: 700,
+                        padding: '0.4rem 0.85rem'
+                      }}
+                    >
+                      <Zap size={14} /> Request Urgent Assistance (₹99)
+                    </button>
                   </div>
                 ) : (
                   <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                    gap: '0.6rem'
+                    backgroundColor: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.82rem',
+                    color: '#166534',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
                   }}>
-                    {slots.map((slot) => {
-                      const isChosen = selectedSlot?.id === slot.id;
-                      return (
-                        <button
-                          type="button"
-                          key={slot.id}
-                          onClick={() => setSelectedSlot(slot)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.35rem',
-                            padding: '0.6rem 0.5rem',
-                            borderRadius: 'var(--radius-md)',
-                            border: isChosen ? '2px solid var(--color-secondary)' : '1px solid var(--color-border)',
-                            backgroundColor: isChosen ? 'var(--color-secondary-subtle)' : '#FFFFFF',
-                            color: isChosen ? 'var(--color-secondary)' : 'var(--color-text-title)',
-                            fontWeight: isChosen ? 700 : 500,
-                            fontSize: '0.82rem',
-                            transition: 'all var(--transition-fast)'
-                          }}
-                        >
-                          <Clock size={13} />
-                          <span>{slot.startTime}</span>
-                        </button>
-                      );
-                    })}
+                    <CheckCircle2 size={16} color="#16A34A" />
+                    <span>
+                      Desk capacity available for <strong>{new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong> ({currentAvail.remaining} out of {currentAvail.limit} slots remaining).
+                    </span>
                   </div>
                 )}
               </div>
@@ -397,7 +550,7 @@ export const AssistanceBookingPage = () => {
                 <textarea
                   className="form-control"
                   rows={3}
-                  placeholder="Mention if you have special category certificates (OBC-NCL, EWS, PwD) or need photo/signature resizing assistance..."
+                  placeholder="Mention if you have category certificates (OBC-NCL, EWS, PwD), require photo/signature compression, or have exam-specific queries..."
                   value={bookingNotes}
                   onChange={(e) => setBookingNotes(e.target.value)}
                 />
@@ -434,7 +587,7 @@ export const AssistanceBookingPage = () => {
                     fontSize: '1.1rem'
                   }}>
                     <strong>Total Payable Today:</strong>
-                    <strong style={{ color: 'var(--color-primary)' }}>₹{totalAmount}</strong>
+                    <strong style={{ color: 'var(--color-primary)' }}>₹{standardFee}</strong>
                   </div>
                 </div>
 
@@ -448,7 +601,7 @@ export const AssistanceBookingPage = () => {
                   lineHeight: 1.45,
                   marginBottom: '1.25rem'
                 }}>
-                  <strong style={{ color: 'var(--color-text-title)' }}>Note on Board Exam Fee:</strong> Depending on category & concessions, the official portal fee ranges from <strong>₹0 to ₹{govtFee}</strong>. You will pay the official fee directly on the government recruitment portal yourself during the live session. maxEvoG does not charge or handle official exam fees.
+                  <strong style={{ color: 'var(--color-text-title)' }}>Note on Official Board Fee:</strong> Official examination portal fees vary by category and commission (₹0 to ₹{govtFee}). You will pay the official fee directly on the government portal yourself during the live session. maxEvoG never collects or handles official exam fees.
                 </div>
 
                 {/* Pro Club Promo if not pro */}
@@ -498,25 +651,176 @@ export const AssistanceBookingPage = () => {
                   </label>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting || !selectedSlot || !consentCreds || !consentAuthorization}
-                  className="btn btn-secondary btn-lg"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  <Video size={18} />
-                  <span>{submitting ? 'Confirming Desk Slot...' : `Confirm & Book (₹${totalAmount})`}</span>
-                </button>
+                {isSelectedDateFull ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowUrgentModal(true)}
+                    className="btn btn-lg"
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      backgroundColor: '#DC2626',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontWeight: 700
+                    }}
+                  >
+                    <Zap size={18} />
+                    <span>Submit Urgent Request (₹99)</span>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={submitting || !consentCreds || !consentAuthorization}
+                    className="btn btn-secondary btn-lg"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    <Video size={18} />
+                    <span>{submitting ? 'Confirming Desk Slot...' : `Confirm & Book (₹${standardFee})`}</span>
+                  </button>
+                )}
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginTop: '0.85rem', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                   <ShieldCheck size={14} color="var(--color-accent)" />
-                  <span>Google Meet invite sent instantly upon booking</span>
+                  <span>Google Meet invite dispatched directly upon confirmation</span>
                 </div>
               </div>
             </div>
           </div>
         </form>
       </div>
+
+      {/* MODAL: URGENT / PRIORITY ASSISTANCE REQUEST */}
+      <Modal
+        isOpen={showUrgentModal}
+        onClose={() => setShowUrgentModal(false)}
+        title="⚡ Priority / Urgent Assistance Request"
+        maxWidth="580px"
+      >
+        <form onSubmit={handleUrgentSubmit}>
+          <div style={{
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            fontSize: '0.82rem',
+            color: '#991B1B',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.5rem'
+          }}>
+            <AlertTriangle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+            <div>
+              <strong>Daily Capacity Full for {new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong>
+              <div style={{ marginTop: '0.2rem' }}>
+                Standard bookings are currently full ({currentAvail.limit}/{currentAvail.limit} booked). Submit an urgent request if your exam deadline is approaching. Once submitted, an idle desk agent will review and accept your session on priority.
+              </div>
+            </div>
+          </div>
+
+          {urgentError && (
+            <div style={{
+              backgroundColor: 'var(--color-danger-subtle)',
+              border: '1px solid var(--color-danger-border)',
+              color: 'var(--color-danger)',
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1rem',
+              fontSize: '0.82rem'
+            }}>
+              {urgentError}
+            </div>
+          )}
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label">Target Examination</label>
+            <div style={{
+              padding: '0.65rem 0.85rem',
+              backgroundColor: 'var(--color-bg)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--color-border)',
+              fontSize: '0.88rem',
+              fontWeight: 600
+            }}>
+              {selectedJobId === 'OTHER' 
+                ? (customExamTitle || 'Custom Specified Examination')
+                : (selectedJob?.title || 'Selected Examination')}
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label">
+              Reason for Urgency / Imminent Deadline *
+            </label>
+            <textarea
+              className="form-control"
+              rows={3}
+              placeholder="e.g., Tomorrow is the last date to apply, server is experiencing high traffic, need immediate photo resizing and document review..."
+              value={urgencyReason}
+              onChange={(e) => setUrgencyReason(e.target.value)}
+              required
+            />
+            <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '0.3rem' }}>
+              Please describe your submission deadline so our desk agents can prioritize accordingly.
+            </div>
+          </div>
+
+          {/* Fee Breakdown */}
+          <div style={{
+            backgroundColor: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Standard Assistance Fee:</span>
+              <span>₹69</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.6rem' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Urgent Expedited Surcharge:</span>
+              <span>+ ₹30</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '1.05rem',
+              fontWeight: 700,
+              borderTop: '1px dashed var(--color-border)',
+              paddingTop: '0.6rem',
+              color: 'var(--color-primary)'
+            }}>
+              <span>Total Priority Fee:</span>
+              <span>₹99</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => setShowUrgentModal(false)}
+              className="btn btn-outline"
+            >
+              Cancel / Select Other Date
+            </button>
+            <button
+              type="submit"
+              disabled={submittingUrgent || !urgencyReason.trim()}
+              className="btn btn-urgent"
+              style={{
+                backgroundColor: '#DC2626',
+                color: '#FFFFFF',
+                border: 'none',
+                fontWeight: 700
+              }}
+            >
+              <Zap size={16} />
+              <span>{submittingUrgent ? 'Submitting Urgent Request...' : 'Confirm Urgent Request (₹99)'}</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <style>{`
         @media (max-width: 860px) {

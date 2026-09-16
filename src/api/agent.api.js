@@ -9,4 +9,6 @@ export const agentApi = {
   completeSubmission: (id, formData) => apiClient.post(`/applications/${id}/complete-submission`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  updateAvailability: (data) => apiClient.patch('/agent/availability', data),
+  getDirectory: () => apiClient.get('/agent/directory'),
 };
