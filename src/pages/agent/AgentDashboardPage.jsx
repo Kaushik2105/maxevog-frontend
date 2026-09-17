@@ -96,6 +96,10 @@ export const AgentDashboardPage = () => {
 
   // Specialist Publishing Modals
   const [showJobModal, setShowJobModal] = useState(false);
+  const [isEditingJob, setIsEditingJob] = useState(false);
+  const [editingJobId, setEditingJobId] = useState(null);
+  const [myJobs, setMyJobs] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(false);
   const [newJob, setNewJob] = useState({
     title: '',
     organization: '',
@@ -233,10 +237,22 @@ export const AgentDashboardPage = () => {
         officialNotificationUrl: newJob.officialUrl,
       };
 
-      const res = await adminApi.createJob(payload);
+      let res;
+      if (isEditingJob && editingJobId) {
+        res = await adminApi.updateJob(editingJobId, payload);
+      } else {
+        res = await adminApi.createJob(payload);
+      }
+
       if (res.data?.success) {
-        setNotification('Official recruitment notice published successfully!');
+        setNotification(
+          isEditingJob
+            ? 'Official recruitment notice updated successfully!'
+            : 'Official recruitment notice published successfully!'
+        );
         setShowJobModal(false);
+        setIsEditingJob(false);
+        setEditingJobId(null);
         setNewJob({
           title: '',
           organization: '',
@@ -252,6 +268,7 @@ export const AgentDashboardPage = () => {
           eligibleDegrees: [],
           eligibleBranches: [],
         });
+        loadMyJobs();
       }
     } catch (err) {
       const errMsg =
@@ -259,6 +276,72 @@ export const AgentDashboardPage = () => {
         err.response?.data?.message ||
         'Failed to save recruitment notice';
       alert(`Error saving job: ${errMsg}`);
+    }
+  };
+
+  const handleOpenCreateJob = () => {
+    setIsEditingJob(false);
+    setEditingJobId(null);
+    setNewJob({
+      title: '',
+      organization: '',
+      department: '',
+      category: 'Central',
+      qualification: 'Graduate',
+      vacancies: '',
+      lastDate: '',
+      fee: 100,
+      officialUrl: '',
+      description: '',
+      tables: [],
+      eligibleDegrees: [],
+      eligibleBranches: [],
+    });
+    setShowJobModal(true);
+  };
+
+  const handleOpenEditJob = (job) => {
+    setIsEditingJob(true);
+    setEditingJobId(job.id);
+    let parsedTables = [];
+    if (Array.isArray(job.tables)) {
+      parsedTables = job.tables;
+    } else if (typeof job.tables === 'string') {
+      try {
+        parsedTables = JSON.parse(job.tables);
+      } catch {
+        parsedTables = [];
+      }
+    }
+    setNewJob({
+      title: job.title || '',
+      organization: job.organization || '',
+      department: job.department || '',
+      category: job.category || 'Central',
+      qualification: job.qualification || 'Graduate',
+      vacancies: job.vacancies !== null && job.vacancies !== undefined ? job.vacancies : '',
+      lastDate: job.applicationLastDate ? job.applicationLastDate.split('T')[0] : '',
+      fee: job.applicationFee !== undefined ? job.applicationFee : 100,
+      officialUrl: job.officialApplicationUrl || job.officialNotificationUrl || '',
+      description: job.description || '',
+      tables: parsedTables,
+      eligibleDegrees: Array.isArray(job.eligibleDegrees) ? job.eligibleDegrees : [],
+      eligibleBranches: Array.isArray(job.eligibleBranches) ? job.eligibleBranches : [],
+    });
+    setShowJobModal(true);
+  };
+
+  const loadMyJobs = async () => {
+    setLoadingJobs(true);
+    try {
+      const res = await adminApi.getJobs({ myOnly: 'true' });
+      if (res.data?.success) {
+        setMyJobs(res.data.data?.jobs || res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load specialist recruitments:', err);
+    } finally {
+      setLoadingJobs(false);
     }
   };
 
@@ -336,6 +419,7 @@ export const AgentDashboardPage = () => {
       if (appsRes.data?.success) {
         setApplications(appsRes.data.data.applications || []);
       }
+      await loadMyJobs();
     } catch (err) {
       console.error('Failed to load agent dashboard data:', err);
     } finally {
@@ -552,7 +636,7 @@ export const AgentDashboardPage = () => {
 
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
-              onClick={() => setShowJobModal(true)}
+              onClick={handleOpenCreateJob}
               className="btn btn-primary btn-sm"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
@@ -948,6 +1032,20 @@ export const AgentDashboardPage = () => {
             >
               Candidate Applications ({applications.length})
             </button>
+
+            <button
+              onClick={() => setActiveTab('recruitments')}
+              style={{
+                padding: '0.75rem 1rem',
+                borderBottom: activeTab === 'recruitments' ? '3px solid var(--color-primary)' : '3px solid transparent',
+                color: activeTab === 'recruitments' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                fontWeight: activeTab === 'recruitments' ? 700 : 500,
+                fontSize: '0.95rem',
+                marginBottom: '-2px'
+              }}
+            >
+              My Published Notices ({myJobs.length})
+            </button>
           </div>
 
           <div style={{
@@ -1092,6 +1190,91 @@ export const AgentDashboardPage = () => {
           </div>
         )}
 
+        {/* TAB 3: AGENT CREATED RECRUITMENTS */}
+        {activeTab === 'recruitments' && (
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.25rem 0', fontWeight: 700 }}>
+                  Recruitments Published by You
+                </h3>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                  Manage, update, and edit details of recruitment notices created from your specialist desk.
+                </div>
+              </div>
+              <button onClick={handleOpenCreateJob} className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Plus size={15} /> Publish New Notice
+              </button>
+            </div>
+
+            {loadingJobs ? (
+              <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>Loading your notices...</p>
+            ) : myJobs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--color-text-muted)' }}>
+                <Briefcase size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.5 }} />
+                <p style={{ margin: 0, fontWeight: 500 }}>You haven't created any recruitment notices yet.</p>
+                <button onClick={handleOpenCreateJob} className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }}>
+                  Publish Your First Notice
+                </button>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Recruitment Title</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Organization</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Sector</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Last Date</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Vacancies</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Fee</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {myJobs.map((job) => (
+                      <tr key={job.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600, maxWidth: '280px' }}>
+                          <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {job.title}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>{job.organization}</td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>{job.category || 'Central'}</span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap' }}>
+                          {job.applicationLastDate ? new Date(job.applicationLastDate).toLocaleDateString('en-IN') : 'N/A'}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          {job.vacancies !== null && job.vacancies !== undefined ? job.vacancies.toLocaleString() : 'N/A'}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>₹{job.applicationFee ?? job.fee ?? 0}</td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <span className={`badge ${job.isPublished ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.72rem' }}>
+                            {job.isPublished ? 'Published' : 'Draft'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditJob(job)}
+                            className="btn btn-outline"
+                            style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem' }}
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MODAL: UPLOAD SUBMISSION RECEIPT */}
         <Modal
           isOpen={showReceiptModal}
@@ -1133,11 +1316,11 @@ export const AgentDashboardPage = () => {
           </form>
         </Modal>
 
-        {/* MODAL: PUBLISH JOB (Desk Specialist) */}
+        {/* MODAL: PUBLISH / EDIT JOB (Desk Specialist) */}
         <Modal
           isOpen={showJobModal}
           onClose={() => setShowJobModal(false)}
-          title="Publish Official Recruitment Notice"
+          title={isEditingJob ? 'Edit Recruitment Notice & Specifications' : 'Publish Official Recruitment Notice'}
         >
           <form onSubmit={handleSaveJob}>
             <div className="form-group">
@@ -1440,7 +1623,7 @@ export const AgentDashboardPage = () => {
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                Publish Recruitment & Specs
+                {isEditingJob ? 'Update Recruitment Notice' : 'Publish Recruitment & Specs'}
               </button>
             </div>
           </form>

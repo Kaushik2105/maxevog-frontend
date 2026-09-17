@@ -56,10 +56,10 @@ export const RefundPolicyPage = () => {
                 <strong>MaxEvoG Platform Outage:</strong> Inability to deliver an allocated desk assistant prior to the official government recruitment deadline due to our internal system outage.
               </li>
               <li>
-                <strong>Duplicate Charge:</strong> Multiple payment debits or gateway errors for the same assistance request.
+                <strong>Official Government Website Outage:</strong> Inability to submit an application due to persistent official government recruitment portal downtime, server crash, or website unavailability during the scheduled assistance window.
               </li>
               <li>
-                <strong>Advance Cancellation:</strong> Standard assistance cancellation initiated at least 4 hours prior to desk operating hours on the booked date.
+                <strong>Duplicate Charge:</strong> Multiple payment debits or gateway errors for the same assistance request.
               </li>
             </ul>
           </div>
@@ -73,6 +73,9 @@ export const RefundPolicyPage = () => {
               </h3>
             </div>
             <ul style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', margin: 0, fontSize: '0.88rem', color: 'var(--color-text-body)' }}>
+              <li>
+                <strong>Change of Mind / Paid Bookings:</strong> Once paid, assistance fees are non-refundable as specialist capacity is immediately locked for your booked date. We do not refund fees once paid unless the failure is on our end or an official government website outage.
+              </li>
               <li>
                 <strong>Urgent / Priority Triage Fee (₹30):</strong> For Urgent Requests (₹99), once a specialist has accepted and initiated expedited review of your application, the ₹30 priority surcharge is non-refundable.
               </li>
@@ -111,7 +114,7 @@ export const RefundPolicyPage = () => {
               <Clock size={20} /> 2. Date Rescheduling & Disconnection Grace Window
             </h2>
             <p style={{ color: 'var(--color-text-body)', lineHeight: 1.7, fontSize: '0.92rem', margin: 0 }}>
-              If your remote session is interrupted due to power failure or network disruption, maxEvoG holds your session active for <strong>30 minutes to 1 hour</strong>. If personal circumstances prevent attendance on your booked date, you may request one complimentary date rescheduling with at least <strong>4 hours advance notice</strong>, subject to desk capacity.
+              If your remote session is interrupted due to power failure or network disruption, maxEvoG holds your session active for <strong>30 minutes to 1 hour</strong>. If personal circumstances prevent attendance on your booked date, you may request one complimentary date rescheduling with at least <strong>4 hours advance notice</strong>, subject to desk capacity. However, fees are strictly non-refundable once paid unless it is our fault or official portal downtime.
             </p>
           </section>
 
@@ -124,8 +127,8 @@ export const RefundPolicyPage = () => {
                 To lodge a refund inquiry or dispute:
               </p>
               <ol style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0 0 1rem 0' }}>
-                <li>Navigate to your candidate dashboard and open the <strong>Grievance Desk</strong> or email our grievance cell at <code>support@maxevog.com</code>.</li>
-                <li>Specify your booking ID, date of session, assigned desk officer name, and attach any relevant documentation (e.g. proof of double charge or board rejection notice).</li>
+                <li>Navigate to your candidate dashboard and open the <strong>Grievance Desk</strong> or email our refund and grievance cell directly at <code>maxevog2026@gmail.com</code>.</li>
+                <li>Specify your booking ID, date of session, assigned desk officer name, and attach any relevant documentation (e.g. proof of double charge, government portal error screenshot, or board rejection notice).</li>
                 <li>Our operations team investigates session logs, audit recordings, and timestamps within <strong>48 hours</strong>.</li>
                 <li>Upon approval, the refund is initiated automatically to your original source of payment (UPI / Netbanking / Card) within <strong>5 to 7 business days</strong>.</li>
               </ol>

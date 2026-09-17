@@ -96,6 +96,7 @@ export const AdminDashboardPage = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [agentsList, setAgentsList] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [selectedAuditLog, setSelectedAuditLog] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Daily Assistance Capacity Controls
@@ -1549,6 +1550,7 @@ export const AdminDashboardPage = () => {
                       <th style={{ padding: '0.75rem 0.5rem' }}>Action Event</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Entity / Target</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Actor</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Name</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Metadata / Details</th>
                     </tr>
                   </thead>
@@ -1597,8 +1599,29 @@ export const AdminDashboardPage = () => {
                             {log.actorRole || 'SYSTEM'}
                           </span>
                         </td>
-                        <td style={{ padding: '0.75rem 0.5rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
-                          {log.metadata ? (typeof log.metadata === 'object' ? JSON.stringify(log.metadata) : String(log.metadata)) : '—'}
+                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600, color: 'var(--color-text-dark)' }}>
+                          {log.actor?.profile?.fullName || log.actor?.email || (log.actorId ? `User #${log.actorId.slice(0, 8)}` : 'System / Auto')}
+                        </td>
+                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <span style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+                              {log.metadata ? (typeof log.metadata === 'object' ? JSON.stringify(log.metadata) : String(log.metadata)) : '—'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAuditLog(log)}
+                              className="btn btn-outline"
+                              style={{
+                                padding: '0.2rem 0.55rem',
+                                fontSize: '0.72rem',
+                                whiteSpace: 'nowrap',
+                                height: 'auto',
+                                lineHeight: 1.2
+                              }}
+                            >
+                              Full View
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1608,6 +1631,100 @@ export const AdminDashboardPage = () => {
             )}
           </div>
         )}
+
+        {/* MODAL: FULL AUDIT LOG DETAILS */}
+        <Modal
+          isOpen={!!selectedAuditLog}
+          onClose={() => setSelectedAuditLog(null)}
+          title="Audit Log Event Details"
+          maxWidth="700px"
+        >
+          {selectedAuditLog && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Action Event</div>
+                  <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--color-primary)', marginTop: '0.2rem' }}>
+                    {selectedAuditLog.action}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Timestamp</div>
+                  <div style={{ fontWeight: 600, color: 'var(--color-text-body)', marginTop: '0.2rem' }}>
+                    {new Date(selectedAuditLog.createdAt).toLocaleString('en-IN', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Actor Name</div>
+                  <div style={{ fontWeight: 600, color: 'var(--color-text-body)', marginTop: '0.2rem' }}>
+                    {selectedAuditLog.actor?.profile?.fullName || selectedAuditLog.actor?.email || 'System / Automated'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Actor Role & ID</div>
+                  <div style={{ fontWeight: 500, color: 'var(--color-text-body)', marginTop: '0.2rem', fontSize: '0.85rem' }}>
+                    <span className="badge" style={{ marginRight: '0.4rem' }}>{selectedAuditLog.actorRole || 'SYSTEM'}</span>
+                    {selectedAuditLog.actorId ? <code style={{ fontSize: '0.76rem' }}>{selectedAuditLog.actorId}</code> : 'None'}
+                  </div>
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Entity / Target</div>
+                  <div style={{ fontWeight: 600, color: 'var(--color-text-body)', marginTop: '0.2rem' }}>
+                    {selectedAuditLog.entityType} {selectedAuditLog.entityId && <code style={{ fontSize: '0.76rem' }}>({selectedAuditLog.entityId})</code>}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-primary)' }}>
+                  Complete Metadata & Context:
+                </div>
+                <pre style={{
+                  backgroundColor: '#0F172A',
+                  color: '#38BDF8',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.82rem',
+                  lineHeight: 1.5,
+                  overflowX: 'auto',
+                  maxHeight: '320px',
+                  fontFamily: 'Consolas, Monaco, monospace'
+                }}>
+                  {selectedAuditLog.metadata 
+                    ? JSON.stringify(selectedAuditLog.metadata, null, 2)
+                    : '{\n  "status": "No additional metadata recorded for this action"\n}'}
+                </pre>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(JSON.stringify(selectedAuditLog.metadata || {}, null, 2));
+                    setNotification('Audit metadata copied to clipboard!');
+                  }}
+                  className="btn btn-outline btn-sm"
+                >
+                  Copy JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAuditLog(null)}
+                  className="btn btn-primary btn-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
 
         {/* MODAL: PUBLISH / EDIT JOB */}
         <Modal

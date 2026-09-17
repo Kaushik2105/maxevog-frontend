@@ -475,7 +475,7 @@ export const AssistanceBookingPage = () => {
                             padding: '0.1rem 0.35rem',
                             borderRadius: '4px'
                           }}>
-                            {avail.remaining} left
+                            Available
                           </span>
                         )}
                       </button>
@@ -498,7 +498,7 @@ export const AssistanceBookingPage = () => {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
                       <AlertTriangle size={16} color="#DC2626" />
-                      <span>Daily Assistance Capacity Reached ({currentAvail.limit}/{currentAvail.limit} slots booked)</span>
+                      <span>Daily Assistance Capacity Reached</span>
                     </div>
                     <div>
                       Standard bookings are full for {new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. You can choose another date, or submit an <strong>Urgent / Priority Assistance Request (₹99)</strong> if your deadline is imminent.
@@ -536,7 +536,7 @@ export const AssistanceBookingPage = () => {
                   }}>
                     <CheckCircle2 size={16} color="#16A34A" />
                     <span>
-                      Desk capacity available for <strong>{new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong> ({currentAvail.remaining} out of {currentAvail.limit} slots remaining).
+                      Desk capacity available for <strong>{new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>.
                     </span>
                   </div>
                 )}

@@ -27,7 +27,6 @@ export const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedQualification, setSelectedQualification] = useState('ALL');
-  const [selectedState, setSelectedState] = useState('ALL');
   const [activeTab, setActiveTab] = useState('jobs'); // 'jobs' | 'admit-cards' | 'results'
 
   useEffect(() => {
@@ -78,6 +77,35 @@ export const HomePage = () => {
     { label: 'Engineering / Diploma', value: 'Engineering' }
   ];
 
+  const checkCategoryMatch = (job, catValue) => {
+    if (catValue === 'ALL') return true;
+    const target = catValue.toLowerCase();
+
+    // 1. Direct match on category or recruitmentType
+    if (job.category && job.category.toLowerCase().includes(target)) return true;
+    if (job.recruitmentType && job.recruitmentType.toLowerCase().includes(target)) return true;
+
+    // 2. Keyword check across organization, department, title and descriptions
+    const combined = `${job.organization || ''} ${job.department || ''} ${job.title || ''} ${job.shortDescription || ''}`.toLowerCase();
+
+    switch (catValue) {
+      case 'Central':
+        return /central|upsc|ssc|cgl|chsl|ibps|delhi|ministry|union|drdo|isro|csir|staff selection/i.test(combined);
+      case 'State':
+        return /state|psc|bpsc|uppsc|mpsc|wbpsc|kpsc|tnpsc|vyapam|commission/i.test(combined);
+      case 'Banking':
+        return /bank|sbi|ibps|rbi|nabard|insurance|lic|sidbi|financial|sebi/i.test(combined);
+      case 'Railways':
+        return /railway|rrb|rrc|irctc|loco|ntpc|asm|alp/i.test(combined);
+      case 'Defence':
+        return /defence|defense|army|navy|air force|afcat|nda|cds|police|constable|sub inspector|si |capf|crpf|cisf|bsf|ssb|itbp/i.test(combined);
+      case 'Teaching':
+        return /teach|tet|ctet|stet|ugc|net|kvs|nvs|professor|lecturer|prt|tgt|pgt|school|college|faculty/i.test(combined);
+      default:
+        return combined.includes(target);
+    }
+  };
+
   // Filter jobs locally or prepare query
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch = searchQuery === '' || 
@@ -85,18 +113,12 @@ export const HomePage = () => {
       job.organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (job.department && job.department.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesCategory = selectedCategory === 'ALL' || 
-      (job.category && job.category.toLowerCase().includes(selectedCategory.toLowerCase())) ||
-      (job.organization && job.organization.toLowerCase().includes(selectedCategory.toLowerCase()));
+    const matchesCategory = checkCategoryMatch(job, selectedCategory);
 
     const matchesQual = selectedQualification === 'ALL' || 
       (job.qualification && job.qualification.toLowerCase().includes(selectedQualification.toLowerCase()));
 
-    const matchesState = selectedState === 'ALL' || 
-      job.state === selectedState || 
-      job.state === 'All India';
-
-    return matchesSearch && matchesCategory && matchesQual && matchesState;
+    return matchesSearch && matchesCategory && matchesQual;
   });
 
   return (
@@ -157,7 +179,14 @@ export const HomePage = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button className="btn btn-primary hero-search-btn">
+              <button 
+                className="btn btn-primary hero-search-btn"
+                onClick={() => {
+                  setActiveTab('jobs');
+                  const el = document.getElementById('recruitments-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
                 Find Openings
               </button>
             </div>
@@ -167,7 +196,10 @@ export const HomePage = () => {
               {categories.map((cat) => (
                 <button
                   key={cat.value}
-                  onClick={() => setSelectedCategory(cat.value)}
+                  onClick={() => {
+                    setSelectedCategory(cat.value);
+                    setActiveTab('jobs');
+                  }}
                   style={{
                     padding: '0.35rem 0.75rem',
                     borderRadius: 'var(--radius-full)',
@@ -176,7 +208,8 @@ export const HomePage = () => {
                     border: selectedCategory === cat.value ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
                     backgroundColor: selectedCategory === cat.value ? 'var(--color-primary)' : '#FFFFFF',
                     color: selectedCategory === cat.value ? '#FFFFFF' : 'var(--color-text-body)',
-                    transition: 'all var(--transition-fast)'
+                    transition: 'all var(--transition-fast)',
+                    cursor: 'pointer'
                   }}
                 >
                   {cat.label}
@@ -188,7 +221,7 @@ export const HomePage = () => {
       </section>
 
       {/* Main Content Area */}
-      <section style={{ padding: '2.5rem 0 4rem' }}>
+      <section id="recruitments-section" style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
           {/* Trust Banner Prominence */}
           <TrustBanner />
@@ -272,22 +305,6 @@ export const HomePage = () => {
                     <option key={q.value} value={q.value}>{q.label}</option>
                   ))}
                 </select>
-
-                <select
-                  value={selectedState}
-                  onChange={(e) => setSelectedState(e.target.value)}
-                  className="form-control form-select"
-                  style={{ width: 'auto', padding: '0.45rem 2rem 0.45rem 0.75rem', fontSize: '0.82rem' }}
-                >
-                  <option value="ALL">All Regions</option>
-                  <option value="All India">All India (Central)</option>
-                  <option value="Delhi">Delhi NCR</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                  <option value="West Bengal">West Bengal</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Rajasthan">Rajasthan</option>
-                </select>
               </div>
             )}
           </div>
@@ -316,14 +333,13 @@ export const HomePage = () => {
                   <AlertCircle size={40} color="var(--color-text-muted)" style={{ margin: '0 auto 1rem' }} />
                   <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>No Active Recruitments Found</h3>
                   <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                    Try clearing your search query or relaxing the qualification and region filters.
+                    Try clearing your search query or relaxing the qualification and sector filters.
                   </p>
                   <button
                     onClick={() => {
                       setSearchQuery('');
                       setSelectedCategory('ALL');
                       setSelectedQualification('ALL');
-                      setSelectedState('ALL');
                     }}
                     className="btn btn-outline"
                   >
