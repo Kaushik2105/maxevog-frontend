@@ -12,7 +12,9 @@ import {
   ArrowLeft, 
   ExternalLink,
   Lock,
-  Sparkles
+  Sparkles,
+  Trash2,
+  FileText
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
@@ -25,17 +27,17 @@ export const ApplicationDetailPage = () => {
   const [authorizationRemarks, setAuthorizationRemarks] = useState('');
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState('');
+  const [deletingDocId, setDeletingDocId] = useState(null);
   const [error, setError] = useState('');
 
   const stages = [
     { key: 'draft', label: 'Draft Created' },
-    { key: 'assistance_scheduled', label: 'Session Booked' },
-    { key: 'documents_verified', label: 'Docs Verified' },
-    { key: 'form_filled', label: 'Form Prepared' },
-    { key: 'candidate_authorization_pending', label: 'Candidate Consent' },
-    { key: 'submitted', label: 'Official Submission' },
-    { key: 'admit_card_ready', label: 'Admit Card Issued' },
-    { key: 'result_declared', label: 'Result Published' }
+    { key: 'session_booked', label: 'Session Booked' },
+    { key: 'agent_assigned', label: 'Agent Assigned' },
+    { key: 'documents_verified', label: 'Documents Verified' },
+    { key: 'form_filling', label: 'Form Filling & Verification' },
+    { key: 'candidate_consent', label: 'Candidate Consent' },
+    { key: 'official_submission', label: 'Official Submission' }
   ];
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export const ApplicationDetailPage = () => {
     try {
       const res = await applicationsApi.uploadDocument(id, formData);
       if (res.data?.success) {
-        setUploadSuccess('Document successfully uploaded & encrypted for session review.');
+        setUploadSuccess('Document successfully uploaded & attached.');
         fetchDetails();
       }
     } catch (err) {
@@ -99,11 +101,64 @@ export const ApplicationDetailPage = () => {
     }
   };
 
-  // Determine current stage index for stepper
+  const handleDeleteDoc = async (docId, docName) => {
+    if (!window.confirm(`Are you sure you want to delete "${docName || 'this document'}"? It will also be removed from secure cloud storage.`)) {
+      return;
+    }
+    setDeletingDocId(docId);
+    setError('');
+    try {
+      const res = await applicationsApi.deleteDocument(id, docId);
+      if (res.data?.success) {
+        setUploadSuccess('Document successfully removed from your application dossier.');
+        fetchDetails();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete document');
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
+  // Determine current stage index for stepper (7 sequential stages)
   const getCurrentStageIndex = () => {
     if (!application?.status) return 0;
-    const idx = stages.findIndex((s) => s.key === application.status);
-    return idx >= 0 ? idx : 1;
+    const s = String(application.status).toUpperCase();
+    const hasAssistance = Boolean(application.assistanceSession || application.assistanceRequestId);
+    const hasAgent = Boolean(application.assignedAgentId || application.assignedAgent || application.assistanceSession?.assignedAgent);
+
+    if (s === 'INTERESTED' || s === 'DRAFT') {
+      if (hasAssistance) {
+        return hasAgent ? 2 : 1;
+      }
+      return 0; // Draft Created
+    }
+
+    if (s === 'SCHEDULED' || s === 'ASSISTANCE_REQUESTED' || s === 'PAYMENT_PENDING' || s === 'PAYMENT_COMPLETED' || s === 'URGENT_PENDING_REVIEW') {
+      return hasAgent ? 2 : 1; // Session Booked or Agent Assigned
+    }
+
+    if (s === 'ASSIGNED' || s === 'IN_PROGRESS' || s === 'AGENT_ASSIGNED') {
+      return 2; // Agent Assigned
+    }
+
+    if (s === 'VERIFICATION_REQUIRED' || s === 'DOCUMENTS_VERIFIED') {
+      return 3; // Documents Verified
+    }
+
+    if (s === 'READY_FOR_REVIEW' || s === 'FORM_FILLING') {
+      return 4; // Form Filling & Candidate Verification
+    }
+
+    if (s === 'CANDIDATE_AUTHORIZATION_PENDING' || s === 'candidate_authorization_pending' || s === 'SUBMISSION_AUTHORIZED') {
+      return 5; // Candidate Consent Before Form Submitting
+    }
+
+    if (s === 'SUBMITTED' || s === 'COMPLETED' || s === 'ADMIT_CARD_AVAILABLE' || s === 'RESULT_AVAILABLE') {
+      return 6; // Official Submission
+    }
+
+    return 1;
   };
 
   if (loading) {
@@ -404,23 +459,75 @@ export const ApplicationDetailPage = () => {
             </div>
 
             {application.documents && application.documents.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {application.documents.map((doc, idx) => (
                   <div
-                    key={idx}
+                    key={doc.id || idx}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '0.5rem 0.75rem',
+                      padding: '0.65rem 0.85rem',
                       backgroundColor: 'var(--color-surface)',
                       border: '1px solid var(--color-border)',
                       borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.8rem'
+                      fontSize: '0.85rem',
+                      gap: '0.5rem'
                     }}
                   >
-                    <span>{doc.name || `Document_${idx + 1}`}</span>
-                    <span className="badge badge-official">Attached</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                      <FileText size={16} color="var(--color-primary)" style={{ flexShrink: 0 }} />
+                      {doc.url ? (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            color: 'var(--color-primary)',
+                            fontWeight: 600,
+                            textDecoration: 'underline',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '180px'
+                          }}
+                          title="View / Download Document"
+                        >
+                          {doc.name || `Document_${idx + 1}`}
+                        </a>
+                      ) : (
+                        <span style={{ fontWeight: 600 }}>{doc.name || `Document_${idx + 1}`}</span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                      {doc.url && (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-outline btn-sm"
+                          style={{ padding: '0.2rem 0.55rem', fontSize: '0.72rem' }}
+                        >
+                          View
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDoc(doc.id, doc.name)}
+                        disabled={deletingDocId === doc.id}
+                        className="btn btn-outline btn-sm"
+                        style={{
+                          padding: '0.2rem 0.55rem',
+                          fontSize: '0.72rem',
+                          color: '#DC2626',
+                          borderColor: '#FCA5A5'
+                        }}
+                        title="Delete Document"
+                      >
+                        {deletingDocId === doc.id ? 'Deleting...' : <Trash2 size={13} />}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

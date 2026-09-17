@@ -9,4 +9,5 @@ export const applicationsApi = {
   uploadDocument: (id, formData) => apiClient.post(`/applications/${id}/documents`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  deleteDocument: (id, docId) => apiClient.delete(`/applications/${id}/documents/${docId}`),
 };

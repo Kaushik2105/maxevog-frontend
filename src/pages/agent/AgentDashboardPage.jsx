@@ -21,6 +21,7 @@ import {
   Plus,
   Award,
   CheckSquare,
+  Briefcase,
   X
 } from 'lucide-react';
 import { Modal } from '../../components/Modal';
@@ -905,7 +906,7 @@ export const AgentDashboardPage = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <button
                       type="button"
-                      onClick={() => handleAdvanceStage(activeSession.id, 'documents_verified')}
+                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'VERIFICATION_REQUIRED')}
                       className="btn btn-outline btn-sm"
                       style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
                     >
@@ -915,7 +916,7 @@ export const AgentDashboardPage = () => {
 
                     <button
                       type="button"
-                      onClick={() => handleAdvanceStage(activeSession.id, 'form_filled')}
+                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'READY_FOR_REVIEW')}
                       className="btn btn-outline btn-sm"
                       style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
                     >
@@ -925,7 +926,7 @@ export const AgentDashboardPage = () => {
 
                     <button
                       type="button"
-                      onClick={() => handleAdvanceStage(activeSession.id, 'candidate_authorization_pending')}
+                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'candidate_authorization_pending')}
                       className="btn btn-secondary btn-sm"
                       style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
                     >
@@ -935,7 +936,7 @@ export const AgentDashboardPage = () => {
 
                     <button
                       type="button"
-                      onClick={() => handleAdvanceStage(activeSession.id, 'submitted')}
+                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'SUBMITTED')}
                       className="btn btn-primary btn-sm"
                       style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
                     >
