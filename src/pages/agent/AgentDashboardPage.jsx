@@ -74,6 +74,63 @@ const STANDARD_MATCHER_BRANCHES = [
   'Others',
 ];
 
+const WORKFLOW_STAGES = [
+  { key: 'draft', label: 'Draft Created' },
+  { key: 'session_booked', label: 'Session Booked' },
+  { key: 'agent_assigned', label: 'Agent Assigned' },
+  { key: 'documents_verified', label: 'Documents Verified' },
+  { key: 'form_filling', label: 'Form Filling & Preview' },
+  { key: 'candidate_consent', label: 'Candidate Consent' },
+  { key: 'official_submission', label: 'Official Submission' }
+];
+
+const getApplicationStageIndex = (appStatus) => {
+  if (!appStatus) return 2;
+  const s = String(appStatus).toUpperCase();
+  if (s === 'INTERESTED' || s === 'DRAFT') return 0;
+  if (s === 'SCHEDULED' || s === 'ASSISTANCE_REQUESTED' || s === 'PAYMENT_PENDING' || s === 'PAYMENT_COMPLETED' || s === 'URGENT_PENDING_REVIEW') return 1;
+  if (s === 'ASSIGNED' || s === 'IN_PROGRESS' || s === 'AGENT_ASSIGNED') return 2;
+  if (s === 'VERIFICATION_REQUIRED' || s === 'DOCUMENTS_VERIFIED') return 3;
+  if (s === 'FORM_FILLING' || s === 'FORM_FILLED' || s === 'READY_FOR_REVIEW') return 4;
+  if (s === 'CANDIDATE_AUTHORIZATION_PENDING' || s === 'CANDIDATE_CONSENT' || s === 'SUBMISSION_AUTHORIZED') return 5;
+  if (s === 'SUBMITTED' || s === 'ADMIT_CARD_AVAILABLE' || s === 'EXAM_COMPLETED' || s === 'RESULT_AVAILABLE' || s === 'COMPLETED') return 6;
+  return 2;
+};
+
+const getApplicationStageInfo = (appStatus) => {
+  const s = String(appStatus || '').toUpperCase();
+  switch (s) {
+    case 'INTERESTED':
+    case 'DRAFT':
+      return { label: 'Draft Created', badgeClass: 'badge-neutral', stageNum: 1 };
+    case 'SCHEDULED':
+    case 'ASSISTANCE_REQUESTED':
+    case 'PAYMENT_PENDING':
+    case 'PAYMENT_COMPLETED':
+      return { label: 'Session Booked', badgeClass: 'badge-primary', stageNum: 2 };
+    case 'ASSIGNED':
+    case 'IN_PROGRESS':
+    case 'AGENT_ASSIGNED':
+      return { label: 'Agent Assigned', badgeClass: 'badge-primary', stageNum: 3 };
+    case 'VERIFICATION_REQUIRED':
+    case 'DOCUMENTS_VERIFIED':
+      return { label: 'Documents Verified', badgeClass: 'badge-primary', stageNum: 4 };
+    case 'FORM_FILLING':
+    case 'FORM_FILLED':
+    case 'READY_FOR_REVIEW':
+      return { label: 'Form Filling & Previewed', badgeClass: 'badge-primary', stageNum: 5 };
+    case 'CANDIDATE_AUTHORIZATION_PENDING':
+      return { label: 'Awaiting Candidate Consent', badgeClass: 'badge-urgent', stageNum: 6 };
+    case 'SUBMISSION_AUTHORIZED':
+      return { label: 'Consent Granted by Candidate', badgeClass: 'badge-official', stageNum: 6 };
+    case 'SUBMITTED':
+    case 'COMPLETED':
+      return { label: 'Officially Submitted', badgeClass: 'badge-official', stageNum: 7 };
+    default:
+      return { label: s ? s.replace(/_/g, ' ') : 'Agent Assigned', badgeClass: 'badge-primary', stageNum: 3 };
+  }
+};
+
 export const AgentDashboardPage = () => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
@@ -496,14 +553,39 @@ export const AgentDashboardPage = () => {
 
   const handleAdvanceStage = async (appId, newStatus) => {
     try {
-      await agentApi.updateApplicationStage(appId, {
+      const res = await agentApi.updateApplicationStage(appId, {
         status: newStatus,
         remarks: `Advanced to ${newStatus} by Desk Specialist ${user?.name || user?.email}`,
       });
       setNotification(`Candidate application stage advanced to: ${newStatus.replace(/_/g, ' ')}`);
+      if (res.data?.data?.application) {
+        const updatedApp = res.data.data.application;
+        setActiveSession(prev => prev ? {
+          ...prev,
+          application: {
+            ...(prev.application || {}),
+            ...updatedApp,
+            status: updatedApp.status
+          }
+        } : prev);
+        setSessions(prev => prev.map(s => {
+          if (s.id === activeSession?.id || s.applicationId === appId || s.application?.id === appId) {
+            return {
+              ...s,
+              application: {
+                ...(s.application || {}),
+                ...updatedApp,
+                status: updatedApp.status
+              }
+            };
+          }
+          return s;
+        }));
+      }
       loadData();
     } catch (err) {
-      alert('Could not advance application stage');
+      console.error('Failed to advance application stage:', err);
+      alert(err.response?.data?.message || 'Could not advance application stage');
     }
   };
 
@@ -767,204 +849,371 @@ export const AgentDashboardPage = () => {
         </div>
 
         {/* WORKBENCH SECTION */}
-        {activeSession && (
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            border: '2px solid var(--color-primary)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.75rem',
-            marginBottom: '2.5rem',
-            boxShadow: 'var(--shadow-lg)'
-          }}>
+        {/* WORKBENCH SECTION */}
+        {activeSession && (() => {
+          const candidateApp = activeSession.application;
+          const appStatus = candidateApp?.status || (activeSession.status === 'COMPLETED' ? 'SUBMITTED' : 'IN_PROGRESS');
+          const stageIndex = getApplicationStageIndex(appStatus);
+          const stageInfo = getApplicationStageInfo(appStatus);
+          const targetAppId = candidateApp?.id || activeSession.applicationId || activeSession.id;
+          const candidateUser = activeSession.user || activeSession.User || candidateApp?.user;
+
+          return (
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              flexWrap: 'wrap',
-              gap: '1rem',
-              borderBottom: '1px solid var(--color-border)',
-              paddingBottom: '1rem',
-              marginBottom: '1.25rem'
+              backgroundColor: '#FFFFFF',
+              border: '2px solid var(--color-primary)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.75rem',
+              marginBottom: '2.5rem',
+              boxShadow: 'var(--shadow-lg)'
             }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                  <span className="badge badge-primary">ACTIVE WORKBENCH APPLICANT</span>
-                  <span className="badge badge-neutral">Ref ID: {activeSession.id.slice(0, 8)}</span>
-                  <span className={`badge ${activeSession.status === 'IN_PROGRESS' ? 'badge-urgent' : 'badge-official'}`}>
-                    {activeSession.status || 'SCHEDULED'}
-                  </span>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                borderBottom: '1px solid var(--color-border)',
+                paddingBottom: '1rem',
+                marginBottom: '1.25rem'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+                    <span className="badge badge-primary">ACTIVE WORKBENCH APPLICANT</span>
+                    <span className="badge badge-neutral">Ref ID: {activeSession.id.slice(0, 8)}</span>
+                    <span className={`badge ${activeSession.status === 'IN_PROGRESS' ? 'badge-urgent' : 'badge-official'}`}>
+                      Desk Call: {activeSession.status || 'SCHEDULED'}
+                    </span>
+                    <span className={`badge ${stageInfo.badgeClass}`} style={{ fontWeight: 700 }}>
+                      Stage {stageInfo.stageNum}/7: {stageInfo.label}
+                    </span>
+                  </div>
+
+                  <h2 style={{ fontSize: '1.4rem', color: 'var(--color-primary)', margin: 0 }}>
+                    Candidate: {candidateUser?.profile?.fullName || candidateUser?.email || 'Registered Aspirant'}
+                  </h2>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                    Target Exam: <strong>{activeSession.customExamTitle || activeSession.job?.title || activeSession.Job?.title || 'Public Recruitment Examination'}</strong> {activeSession.job?.organization || activeSession.Job?.organization ? `(${activeSession.job?.organization || activeSession.Job?.organization})` : '(Custom Candidate Exam)'}
+                  </div>
+                  {activeSession.isUrgent && (
+                    <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span className="badge" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #F87171', fontWeight: 700, fontSize: '0.75rem' }}>
+                        ⚡ PRIORITY / URGENT (₹{activeSession.priorityFee || 99})
+                      </span>
+                      {activeSession.urgencyReason && (
+                        <span style={{ fontSize: '0.8rem', color: '#991B1B' }}>
+                          <strong>Urgent Note:</strong> "{activeSession.urgencyReason}"
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <h2 style={{ fontSize: '1.4rem', color: 'var(--color-primary)', margin: 0 }}>
-                  Candidate: {activeSession.User?.profile?.fullName || activeSession.User?.email || 'Registered Aspirant'}
-                </h2>
-                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                  Target Exam: <strong>{activeSession.customExamTitle || activeSession.Job?.title || 'Public Recruitment Examination'}</strong> {activeSession.Job?.organization ? `(${activeSession.Job.organization})` : '(Custom Candidate Exam)'}
+                {/* Status Controls */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {activeSession.status !== 'IN_PROGRESS' && (
+                    <button
+                      onClick={() => handleUpdateSessionStatus('IN_PROGRESS')}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <Video size={15} /> Start Desk Session
+                    </button>
+                  )}
+                  {activeSession.status === 'IN_PROGRESS' && (
+                    <button
+                      onClick={() => handleUpdateSessionStatus('COMPLETED')}
+                      className="btn btn-primary btn-sm"
+                    >
+                      <CheckCircle2 size={15} /> Mark Session Finished
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowReceiptModal(true)}
+                    className="btn btn-outline btn-sm"
+                  >
+                    <Upload size={14} /> Upload Submission Slip
+                  </button>
                 </div>
-                {activeSession.isUrgent && (
-                  <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <span className="badge" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #F87171', fontWeight: 700, fontSize: '0.75rem' }}>
-                      ⚡ PRIORITY / URGENT (₹{activeSession.priorityFee || 99})
+              </div>
+
+              {/* CANDIDATE APPLICATION STATUS JOURNEY STEPPER */}
+              <div style={{
+                backgroundColor: 'var(--color-surface-hover)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Sparkles size={16} color="var(--color-primary)" />
+                    <h4 style={{ fontSize: '1rem', color: 'var(--color-primary)', margin: 0, fontWeight: 700 }}>
+                      Candidate Application Status Journey
+                    </h4>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>Current Status:</span>
+                    <span className={`badge ${stageInfo.badgeClass}`} style={{ fontWeight: 700, fontSize: '0.82rem' }}>
+                      Stage {stageInfo.stageNum} of 7: {stageInfo.label}
                     </span>
-                    {activeSession.urgencyReason && (
-                      <span style={{ fontSize: '0.8rem', color: '#991B1B' }}>
-                        <strong>Urgent Note:</strong> "{activeSession.urgencyReason}"
+                    {String(appStatus).toUpperCase() === 'CANDIDATE_AUTHORIZATION_PENDING' && (
+                      <span className="badge badge-urgent" style={{ fontSize: '0.75rem', animation: 'pulse 2s infinite' }}>
+                        ⏳ Awaiting Candidate Consent
+                      </span>
+                    )}
+                    {String(appStatus).toUpperCase() === 'SUBMISSION_AUTHORIZED' && (
+                      <span className="badge badge-official" style={{ fontSize: '0.75rem' }}>
+                        ✓ Consent Authorized by Candidate
                       </span>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Status Controls */}
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {activeSession.status !== 'IN_PROGRESS' && (
-                  <button
-                    onClick={() => handleUpdateSessionStatus('IN_PROGRESS')}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    <Video size={15} /> Start Desk Session
-                  </button>
-                )}
-                {activeSession.status === 'IN_PROGRESS' && (
-                  <button
-                    onClick={() => handleUpdateSessionStatus('COMPLETED')}
-                    className="btn btn-primary btn-sm"
-                  >
-                    <CheckCircle2 size={15} /> Mark Session Finished
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowReceiptModal(true)}
-                  className="btn btn-outline btn-sm"
-                >
-                  <Upload size={14} /> Upload Submission Slip
-                </button>
-              </div>
-            </div>
+                {/* Stepper Track Visualization */}
+                <div style={{ margin: '1rem 0 0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
+                    {/* Background Track Line */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '14px',
+                      left: '25px',
+                      right: '25px',
+                      height: '3px',
+                      backgroundColor: 'var(--color-border)',
+                      zIndex: 0
+                    }} />
 
-            {/* MANDATORY ETHICAL REMINDER PROMPTER */}
-            <div style={{
-              backgroundColor: 'var(--color-primary-subtle)',
-              border: '1px solid #BFDBFE',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.85rem 1.25rem',
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem'
-            }}>
-              <ShieldAlert size={20} color="var(--color-secondary)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-              <div style={{ fontSize: '0.82rem', color: 'var(--color-primary)', lineHeight: 1.45 }}>
-                <strong>CRITICAL ETHICAL DIRECTIVE:</strong> Never request the applicant to share passwords, SMS OTPs, or payment card details. Instruct them to enter credentials directly on their screen while you guide data verification and certificate resizing.
-              </div>
-            </div>
+                    {/* Active Progress Line */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '14px',
+                      left: '25px',
+                      width: `${(stageIndex / (WORKFLOW_STAGES.length - 1)) * 92}%`,
+                      height: '3px',
+                      backgroundColor: 'var(--color-primary)',
+                      zIndex: 1,
+                      transition: 'width 0.4s ease'
+                    }} />
 
-            {/* Two-Column Workbench Data */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1.2fr 1fr',
-              gap: '1.5rem',
-              alignItems: 'flex-start'
-            }} className="workbench-grid">
-              {/* Left Column: Stage Controller & Conference */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {/* Meeting Link Manager */}
-                <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                    <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Video size={15} color="var(--color-primary)" />
-                      Candidate Google Meet Link
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => window.open('https://meet.google.com/new', '_blank')}
-                      className="btn btn-ghost btn-sm"
-                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', color: 'var(--color-primary)', border: '1px solid var(--color-border)' }}
-                      title="Open Google Meet in a new tab to create a meeting room"
-                    >
-                      <ExternalLink size={12} style={{ marginRight: '0.25rem' }} /> Create New Meet
-                    </button>
+                    {WORKFLOW_STAGES.map((stage, idx) => {
+                      const isCompleted = idx < stageIndex;
+                      const isCurrent = idx === stageIndex;
+
+                      return (
+                        <div
+                          key={stage.key}
+                          style={{
+                            position: 'relative',
+                            zIndex: 2,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            textAlign: 'center',
+                            width: '85px'
+                          }}
+                        >
+                          <div style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '50%',
+                            backgroundColor: isCompleted ? 'var(--color-accent)' : isCurrent ? 'var(--color-primary)' : '#FFFFFF',
+                            border: isCompleted ? '2px solid var(--color-accent)' : isCurrent ? '2px solid var(--color-primary)' : '2px solid var(--color-border)',
+                            color: isCompleted || isCurrent ? '#FFFFFF' : 'var(--color-text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            marginBottom: '0.35rem',
+                            boxShadow: isCurrent ? '0 0 0 4px rgba(11, 37, 69, 0.18)' : 'none'
+                          }}>
+                            {isCompleted ? <CheckCircle2 size={15} /> : idx + 1}
+                          </div>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: isCurrent ? 700 : 500,
+                            color: isCurrent ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                            lineHeight: 1.2
+                          }}>
+                            {stage.label}
+                          </span>
+                          {isCurrent && (
+                            <span style={{
+                              fontSize: '0.62rem',
+                              color: 'var(--color-primary)',
+                              fontWeight: 800,
+                              marginTop: '0.2rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              ● Current
+                            </span>
+                          )}
+                          {isCompleted && (
+                            <span style={{
+                              fontSize: '0.6rem',
+                              color: 'var(--color-accent)',
+                              fontWeight: 600,
+                              marginTop: '0.15rem'
+                            }}>
+                              ✓ Done
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input
-                      type="url"
-                      className="form-control"
-                      value={meetingUrlInput}
-                      onChange={(e) => setMeetingUrlInput(e.target.value)}
-                      placeholder="Paste meet link e.g. https://meet.google.com/abc-defg-hij"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleUpdateMeetingUrl}
-                      className="btn btn-outline btn-sm"
-                    >
-                      <Save size={14} /> Save Link
-                    </button>
-                    {(meetingUrlInput || activeSession.meetingLink || activeSession.meetingUrl) && (
-                      <a
-                        href={meetingUrlInput || activeSession.meetingLink || activeSession.meetingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn btn-primary btn-sm"
+                </div>
+              </div>
+
+              {/* MANDATORY ETHICAL REMINDER PROMPTER */}
+              <div style={{
+                backgroundColor: 'var(--color-primary-subtle)',
+                border: '1px solid #BFDBFE',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.85rem 1.25rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.75rem'
+              }}>
+                <ShieldAlert size={20} color="var(--color-secondary)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-primary)', lineHeight: 1.45 }}>
+                  <strong>CRITICAL ETHICAL DIRECTIVE:</strong> Never request the applicant to share passwords, SMS OTPs, or payment card details. Instruct them to enter credentials directly on their screen while you guide data verification and certificate resizing.
+                </div>
+              </div>
+
+              {/* Two-Column Workbench Data */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1.2fr 1fr',
+                gap: '1.5rem',
+                alignItems: 'flex-start'
+              }} className="workbench-grid">
+                {/* Left Column: Stage Controller & Conference */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Meeting Link Manager */}
+                  <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Video size={15} color="var(--color-primary)" />
+                        Candidate Google Meet Link
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => window.open('https://meet.google.com/new', '_blank')}
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', color: 'var(--color-primary)', border: '1px solid var(--color-border)' }}
+                        title="Open Google Meet in a new tab to create a meeting room"
                       >
-                        Join Call
-                      </a>
-                    )}
+                        <ExternalLink size={12} style={{ marginRight: '0.25rem' }} /> Create New Meet
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="url"
+                        className="form-control"
+                        value={meetingUrlInput}
+                        onChange={(e) => setMeetingUrlInput(e.target.value)}
+                        placeholder="Paste meet link e.g. https://meet.google.com/abc-defg-hij"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleUpdateMeetingUrl}
+                        className="btn btn-outline btn-sm"
+                      >
+                        <Save size={14} /> Save Link
+                      </button>
+                      {(meetingUrlInput || activeSession.meetingLink || activeSession.meetingUrl) && (
+                        <a
+                          href={meetingUrlInput || activeSession.meetingLink || activeSession.meetingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-primary btn-sm"
+                        >
+                          Join Call
+                        </a>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.4rem', lineHeight: 1.35 }}>
+                      Click <strong>Create New Meet</strong> to spin up a meeting room, copy its URL from your browser address bar, paste it here, and click <strong>Save Link</strong>. The candidate's Meet button will become active immediately.
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.4rem', lineHeight: 1.35 }}>
-                    Click <strong>Create New Meet</strong> to spin up a meeting room, copy its URL from your browser address bar, paste it here, and click <strong>Save Link</strong>. The candidate's Meet button will become active immediately.
+
+                  {/* Live Stage Advancement Stepper */}
+                  <div style={{ padding: '1.25rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <h4 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', margin: 0, fontWeight: 700 }}>
+                        Application Workflow Controller
+                      </h4>
+                      <span className={`badge ${stageInfo.badgeClass}`} style={{ fontSize: '0.72rem' }}>
+                        Current: Stage {stageInfo.stageNum}/7
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAdvanceStage(targetAppId, 'VERIFICATION_REQUIRED')}
+                        className={`btn btn-sm ${stageIndex === 3 ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <CheckCircle2 size={15} color={stageIndex >= 4 ? 'var(--color-accent)' : 'currentColor'} />
+                          <span>1. Mark Scanned Documents Verified & Ready</span>
+                        </div>
+                        {stageIndex >= 4 && <span className="badge badge-accent" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>✓ Verified</span>}
+                        {stageIndex === 3 && <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>● Current</span>}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAdvanceStage(targetAppId, 'READY_FOR_REVIEW')}
+                        className={`btn btn-sm ${stageIndex === 4 ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <FileText size={15} color={stageIndex >= 5 ? 'var(--color-accent)' : 'currentColor'} />
+                          <span>2. Mark Official Board Form Filled & Previewed</span>
+                        </div>
+                        {stageIndex >= 5 && <span className="badge badge-accent" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>✓ Form Filled</span>}
+                        {stageIndex === 4 && <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>● Current</span>}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAdvanceStage(targetAppId, 'CANDIDATE_AUTHORIZATION_PENDING')}
+                        className={`btn btn-sm ${String(appStatus).toUpperCase() === 'CANDIDATE_AUTHORIZATION_PENDING' ? 'btn-secondary' : 'btn-outline'}`}
+                        style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Sparkles size={15} />
+                          <span>3. Request Candidate Consent & Authorization</span>
+                        </div>
+                        {String(appStatus).toUpperCase() === 'SUBMISSION_AUTHORIZED' ? (
+                          <span className="badge badge-official" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>✓ Consent Granted</span>
+                        ) : String(appStatus).toUpperCase() === 'CANDIDATE_AUTHORIZATION_PENDING' ? (
+                          <span className="badge badge-urgent" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>⏳ Awaiting Consent</span>
+                        ) : stageIndex === 5 ? (
+                          <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>● Current</span>
+                        ) : null}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAdvanceStage(targetAppId, 'SUBMITTED')}
+                        className={`btn btn-sm ${stageIndex >= 6 ? 'btn-primary' : 'btn-outline'}`}
+                        style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <CheckCircle2 size={15} />
+                          <span>4. Mark Officially Submitted to Government Board</span>
+                        </div>
+                        {stageIndex >= 6 && <span className="badge badge-accent" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem' }}>✓ Submitted</span>}
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                {/* Live Stage Advancement Stepper */}
-                <div style={{ padding: '1.25rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                  <h4 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>
-                    Application Workflow Controller
-                  </h4>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'VERIFICATION_REQUIRED')}
-                      className="btn btn-outline btn-sm"
-                      style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
-                    >
-                      <CheckCircle2 size={15} color="var(--color-accent)" />
-                      <span>1. Mark Scanned Documents Verified & Ready</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'READY_FOR_REVIEW')}
-                      className="btn btn-outline btn-sm"
-                      style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
-                    >
-                      <FileText size={15} color="var(--color-primary)" />
-                      <span>2. Mark Official Board Form Filled & Previewed</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'candidate_authorization_pending')}
-                      className="btn btn-secondary btn-sm"
-                      style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
-                    >
-                      <Sparkles size={15} />
-                      <span>3. Request Candidate Consent & Authorization</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAdvanceStage(activeSession.applicationId || activeSession.id, 'SUBMITTED')}
-                      className="btn btn-primary btn-sm"
-                      style={{ justifyContent: 'flex-start', padding: '0.6rem 0.85rem' }}
-                    >
-                      <CheckCircle2 size={15} />
-                      <span>4. Mark Officially Submitted to Government Board</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
 
               {/* Right Column: Candidate Dossier & Notes */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -1122,7 +1371,7 @@ export const AgentDashboardPage = () => {
               </div>
             </div>
           </div>
-        )}
+        ); })()}
 
         {/* TAB CONTROLS */}
         <div style={{
@@ -1231,6 +1480,15 @@ export const AgentDashboardPage = () => {
                           <span className={`badge ${item.status === 'IN_PROGRESS' ? 'badge-urgent' : item.status === 'COMPLETED' ? 'badge-official' : item.status === 'URGENT_PENDING_REVIEW' ? 'badge-urgent' : 'badge-primary'}`}>
                             {item.status === 'URGENT_PENDING_REVIEW' ? 'URGENT REVIEW' : (item.status || 'SCHEDULED')}
                           </span>
+                          {(() => {
+                            const itemAppStatus = item.application?.status || (item.status === 'COMPLETED' ? 'SUBMITTED' : 'IN_PROGRESS');
+                            const itemStage = getApplicationStageInfo(itemAppStatus);
+                            return (
+                              <span className={`badge ${itemStage.badgeClass}`} style={{ fontSize: '0.72rem', fontWeight: 600 }}>
+                                Stage {itemStage.stageNum}/7: {itemStage.label}
+                              </span>
+                            );
+                          })()}
                           <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                             <Clock size={12} /> {item.bookingDate ? new Date(item.bookingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : (item.date || 'Today')}
                           </span>
@@ -1295,7 +1553,14 @@ export const AgentDashboardPage = () => {
                         {app.job?.title || 'Civil Recruitment'}
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>
-                        <span className="badge badge-primary">{app.status?.replace(/_/g, ' ')}</span>
+                        {(() => {
+                          const info = getApplicationStageInfo(app.status);
+                          return (
+                            <span className={`badge ${info.badgeClass}`} style={{ fontSize: '0.75rem' }}>
+                              Stage {info.stageNum}/7: {info.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>
                         ₹{app.job?.fee || 0}
@@ -1305,7 +1570,7 @@ export const AgentDashboardPage = () => {
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
                         <button
-                          onClick={() => handleAdvanceStage(app.id, 'submitted')}
+                          onClick={() => handleAdvanceStage(app.id, 'SUBMITTED')}
                           className="btn btn-outline btn-sm"
                           style={{ fontSize: '0.75rem' }}
                         >

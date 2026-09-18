@@ -191,7 +191,7 @@ export const ApplicationDetailPage = () => {
   }
 
   const currentStageIndex = getCurrentStageIndex();
-  const isConsentPending = application.status === 'candidate_authorization_pending';
+  const isConsentPending = String(application.status || '').toUpperCase() === 'CANDIDATE_AUTHORIZATION_PENDING';
 
   return (
     <div style={{ padding: '2.5rem 0 4rem' }}>

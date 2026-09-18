@@ -44,6 +44,20 @@ export const ApplicationsPage = () => {
   };
 
   const getStatusBadge = (status) => {
+    const s = String(status || '').toUpperCase();
+    if (s === 'CANDIDATE_AUTHORIZATION_PENDING') {
+      return (
+        <span className="badge badge-urgent" style={{ animation: 'pulse 2s infinite' }}>
+          Consent Required
+        </span>
+      );
+    }
+    if (s === 'SUBMISSION_AUTHORIZED') {
+      return <span className="badge badge-official">Consent Authorized</span>;
+    }
+    if (s === 'SUBMITTED') {
+      return <span className="badge badge-official">Submitted & Validated</span>;
+    }
     switch (status) {
       case 'candidate_authorization_pending':
         return (
@@ -67,7 +81,14 @@ export const ApplicationsPage = () => {
 
   const filtered = applications.filter((app) => {
     if (filterStatus === 'ALL') return true;
-    return app.status === filterStatus;
+    const s = String(app.status || '').toUpperCase();
+    if (filterStatus === 'candidate_authorization_pending') {
+      return s === 'CANDIDATE_AUTHORIZATION_PENDING';
+    }
+    if (filterStatus === 'submitted') {
+      return s === 'SUBMITTED' || s === 'COMPLETED';
+    }
+    return app.status === filterStatus || s === String(filterStatus).toUpperCase();
   });
 
   return (
@@ -236,7 +257,7 @@ export const ApplicationsPage = () => {
                     justifyContent: 'space-between',
                     flexWrap: 'wrap',
                     gap: '1.25rem',
-                    borderLeft: app.status === 'candidate_authorization_pending' ? '4px solid var(--color-secondary)' : undefined
+                    borderLeft: (String(app.status).toUpperCase() === 'CANDIDATE_AUTHORIZATION_PENDING') ? '4px solid var(--color-secondary)' : undefined
                   }}
                 >
                   <div style={{ flex: 1, minWidth: '260px' }}>
