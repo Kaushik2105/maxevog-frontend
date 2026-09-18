@@ -8,6 +8,7 @@ import {
   CheckCircle2, 
   Clock, 
   FileText, 
+  FileCheck,
   ShieldAlert, 
   ExternalLink, 
   UserCheck, 
@@ -413,7 +414,7 @@ export const AgentDashboardPage = () => {
         setSessions(list);
         if (list.length > 0 && !activeSession) {
           setActiveSession(list[0]);
-          setMeetingUrlInput(list[0].meetingUrl || 'https://meet.google.com/new');
+          setMeetingUrlInput(list[0].meetingLink || list[0].meetingUrl || '');
           setAgentNotes(list[0].notes || '');
         }
       }
@@ -446,14 +447,16 @@ export const AgentDashboardPage = () => {
 
   const handleSelectSession = (session) => {
     setActiveSession(session);
-    setMeetingUrlInput(session.meetingUrl || 'https://meet.google.com/new');
+    setMeetingUrlInput(session.meetingLink || session.meetingUrl || '');
     setAgentNotes(session.notes || '');
   };
 
   const handleUpdateMeetingUrl = async () => {
     if (!activeSession) return;
     try {
-      await agentApi.updateSession(activeSession.id, { meetingUrl: meetingUrlInput });
+      const url = (meetingUrlInput || '').trim();
+      await agentApi.updateSession(activeSession.id, { meetingUrl: url, meetingLink: url });
+      setActiveSession(prev => prev ? { ...prev, meetingUrl: url, meetingLink: url } : prev);
       setNotification('Meeting URL updated and saved!');
       loadData();
     } catch (err) {
@@ -528,8 +531,9 @@ export const AgentDashboardPage = () => {
   };
 
   const filteredSessions = sessions.filter((s) => {
-    const name = s.User?.profile?.fullName || s.User?.email || '';
-    const jobTitle = s.Job?.title || '';
+    const candidate = s.user || s.User;
+    const name = candidate?.profile?.fullName || candidate?.email || '';
+    const jobTitle = s.job?.title || s.Job?.title || s.customExamTitle || '';
     const query = searchQuery.toLowerCase();
     return name.toLowerCase().includes(query) || jobTitle.toLowerCase().includes(query);
   });
@@ -664,9 +668,9 @@ export const AgentDashboardPage = () => {
             >
               Sync Live Queue
             </button>
-            {activeSession?.meetingUrl && (
+            {(activeSession?.meetingLink || activeSession?.meetingUrl) && (
               <a
-                href={activeSession.meetingUrl}
+                href={activeSession.meetingLink || activeSession.meetingUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-secondary btn-sm"
@@ -866,34 +870,49 @@ export const AgentDashboardPage = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {/* Meeting Link Manager */}
                 <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                  <label className="form-label" style={{ marginBottom: '0.4rem', display: 'block' }}>
-                    Candidate Google Meet Link
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Video size={15} color="var(--color-primary)" />
+                      Candidate Google Meet Link
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => window.open('https://meet.google.com/new', '_blank')}
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', color: 'var(--color-primary)', border: '1px solid var(--color-border)' }}
+                      title="Open Google Meet in a new tab to create a meeting room"
+                    >
+                      <ExternalLink size={12} style={{ marginRight: '0.25rem' }} /> Create New Meet
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input
                       type="url"
                       className="form-control"
                       value={meetingUrlInput}
                       onChange={(e) => setMeetingUrlInput(e.target.value)}
-                      placeholder="https://meet.google.com/xyz-abc-def"
+                      placeholder="Paste meet link e.g. https://meet.google.com/abc-defg-hij"
                     />
                     <button
                       type="button"
                       onClick={handleUpdateMeetingUrl}
                       className="btn btn-outline btn-sm"
                     >
-                      <Save size={14} /> Save
+                      <Save size={14} /> Save Link
                     </button>
-                    {meetingUrlInput && (
+                    {(meetingUrlInput || activeSession.meetingLink || activeSession.meetingUrl) && (
                       <a
-                        href={meetingUrlInput}
+                        href={meetingUrlInput || activeSession.meetingLink || activeSession.meetingUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="btn btn-primary btn-sm"
                       >
-                        Join
+                        Join Call
                       </a>
                     )}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.4rem', lineHeight: 1.35 }}>
+                    Click <strong>Create New Meet</strong> to spin up a meeting room, copy its URL from your browser address bar, paste it here, and click <strong>Save Link</strong>. The candidate's Meet button will become active immediately.
                   </div>
                 </div>
 
@@ -950,23 +969,133 @@ export const AgentDashboardPage = () => {
               {/* Right Column: Candidate Dossier & Notes */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {/* Candidate Info Card */}
-                <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', fontSize: '0.85rem' }}>
-                  <h4 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', marginBottom: '0.6rem' }}>
-                    Candidate Profile Particulars
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <div><strong>Mobile:</strong> {activeSession.User?.profile?.mobileNumber || activeSession.User?.phone || 'Not provided'}</div>
-                    <div><strong>Email:</strong> {activeSession.User?.email}</div>
-                    <div><strong>Reservation Category:</strong> {activeSession.User?.profile?.category || 'General (UR)'}</div>
-                    <div><strong>State Domicile:</strong> {activeSession.User?.profile?.state || 'All India'}</div>
-                    <div><strong>Qualification:</strong> {activeSession.User?.profile?.highestQualification || 'Graduate'}</div>
-                    {activeSession.notes && (
-                      <div style={{ marginTop: '0.35rem', color: 'var(--color-secondary)' }}>
-                        <strong>Applicant Note:</strong> "{activeSession.notes}"
+                {(() => {
+                  const candidate = activeSession.user || activeSession.User || activeSession.application?.user || {};
+                  const prof = candidate.profile || {};
+                  return (
+                    <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                        <h4 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <UserCheck size={16} color="var(--color-primary)" />
+                          Candidate Profile Particulars
+                        </h4>
+                        {prof.profileCompletionPercentage !== undefined && prof.profileCompletionPercentage !== null && (
+                          <span className="badge badge-outline" style={{ fontSize: '0.72rem' }}>
+                            {prof.profileCompletionPercentage}% Profile
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                        <div><strong>Full Name:</strong> {prof.fullName || candidate.fullName || candidate.name || 'Not provided'}</div>
+                        <div><strong>Mobile:</strong> {prof.mobileNumber || candidate.phone || candidate.phoneNumber || 'Not provided'}</div>
+                        <div><strong>Email:</strong> {candidate.email || prof.email || 'Not provided'}</div>
+                        <div><strong>Category:</strong> {prof.category || 'GENERAL'}</div>
+                        <div><strong>DOB & Gender:</strong> {prof.dob ? new Date(prof.dob).toLocaleDateString('en-IN') : 'DOB not set'}{prof.gender ? ` • ${prof.gender}` : ''}</div>
+                        <div><strong>State & District:</strong> {prof.state || 'Not specified'}{prof.district ? `, ${prof.district}` : ''}</div>
+                        <div>
+                          <strong>Qualification:</strong>{' '}
+                          {[prof.educationLevel, prof.degree, prof.branch].filter(Boolean).join(' - ') || prof.highestQualification || 'Graduate'}
+                          {prof.passingYear ? ` (${prof.passingYear})` : ''}
+                        </div>
+                        {prof.disabilityStatus && (
+                          <div><strong>Disability Status (PwD):</strong> Yes</div>
+                        )}
+                        {prof.address && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            <strong>Address:</strong> {prof.address}
+                          </div>
+                        )}
+                        {activeSession.notes && (
+                          <div style={{ marginTop: '0.35rem', color: 'var(--color-secondary)', padding: '0.5rem', backgroundColor: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)' }}>
+                            <strong>Applicant Note:</strong> "{activeSession.notes}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Candidate Uploaded Documents Dossier */}
+                {(() => {
+                  const applicantDocs = activeSession.documents || activeSession.application?.documents || [];
+                  return (
+                    <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h4 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <FileCheck size={16} color="var(--color-primary)" />
+                          Uploaded Documents ({applicantDocs.length})
+                        </h4>
+                      </div>
+
+                      {applicantDocs.length === 0 ? (
+                        <div style={{
+                          padding: '0.85rem',
+                          backgroundColor: 'var(--color-surface-hover)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: 'var(--color-text-muted)',
+                          textAlign: 'center',
+                          fontSize: '0.8rem'
+                        }}>
+                          No scanned documents uploaded yet by candidate.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '230px', overflowY: 'auto' }}>
+                          {applicantDocs.map((doc, idx) => (
+                            <div
+                              key={doc.id || idx}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.55rem 0.75rem',
+                                backgroundColor: 'var(--color-surface-hover)',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--color-border)'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                                <FileText size={16} color="var(--color-primary)" style={{ flexShrink: 0 }} />
+                                <div style={{ overflow: 'hidden' }}>
+                                  <div
+                                    style={{
+                                      fontWeight: 600,
+                                      fontSize: '0.82rem',
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      maxWidth: '160px'
+                                    }}
+                                    title={doc.name}
+                                  >
+                                    {doc.name || `Document #${idx + 1}`}
+                                  </div>
+                                  {doc.size && (
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                                      {(doc.size / 1024).toFixed(1)} KB
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              {doc.url ? (
+                                <a
+                                  href={doc.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="btn btn-outline btn-sm"
+                                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                >
+                                  <ExternalLink size={12} /> View File
+                                </a>
+                              ) : (
+                                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>No URL</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Desk Verification Notes */}
                 <div style={{ padding: '1rem', backgroundColor: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
@@ -1113,10 +1242,10 @@ export const AgentDashboardPage = () => {
                         </div>
 
                         <h4 style={{ fontSize: '1.05rem', color: 'var(--color-text-title)', margin: '0 0 0.25rem 0' }}>
-                          {item.User?.profile?.fullName || item.User?.email || 'Candidate'}
+                          {(item.user || item.User)?.profile?.fullName || (item.user || item.User)?.email || 'Candidate'}
                         </h4>
                         <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                          Exam: <strong>{item.customExamTitle || item.Job?.title || 'Recruitment Exam'}</strong> {item.Job?.organization ? `(${item.Job.organization})` : '(Custom Candidate Exam)'}
+                          Exam: <strong>{item.customExamTitle || item.job?.title || item.Job?.title || 'Recruitment Exam'}</strong> {item.job?.organization || item.Job?.organization ? `(${item.job?.organization || item.Job?.organization})` : '(Custom Candidate Exam)'}
                         </div>
                         {item.urgencyReason && (
                           <div style={{ fontSize: '0.78rem', color: '#DC2626', marginTop: '0.25rem' }}>

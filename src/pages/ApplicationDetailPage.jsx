@@ -124,8 +124,8 @@ export const ApplicationDetailPage = () => {
   const getCurrentStageIndex = () => {
     if (!application?.status) return 0;
     const s = String(application.status).toUpperCase();
-    const hasAssistance = Boolean(application.assistanceSession || application.assistanceRequestId);
-    const hasAgent = Boolean(application.assignedAgentId || application.assignedAgent || application.assistanceSession?.assignedAgent);
+    const hasAssistance = Boolean(application.assistanceSession || application.assistanceRequest || application.assistanceRequestId);
+    const hasAgent = Boolean(application.assignedAgentId || application.assignedAgent || application.assistanceSession?.assignedAgent || application.assistanceRequest?.assignedAgent);
 
     if (s === 'INTERESTED' || s === 'DRAFT') {
       if (hasAssistance) {
@@ -354,46 +354,96 @@ export const ApplicationDetailPage = () => {
               <Video size={18} /> Assisted Desk Session
             </h3>
 
-            <div style={{
-              backgroundColor: 'var(--color-bg)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1rem',
-              border: '1px solid var(--color-border)',
-              marginBottom: '1rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.6rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Specialist Desk Agent:</span>
-                <strong>{application.assistanceSession?.agentName || 'Senior Desk Officer'}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Assistance Status:</span>
-                <span className="badge badge-primary">{application.assistanceSession?.status || 'Scheduled'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Scheduled Time:</span>
-                <strong>
-                  {application.assistanceSession?.scheduledAt ? 
-                    new Date(application.assistanceSession.scheduledAt).toLocaleString('en-IN') : 
-                    'Confirmed on booking'}
-                </strong>
-              </div>
-            </div>
+            {(() => {
+              const assistance = application.assistanceRequest || application.assistanceSession;
+              const rawMeetingLink = assistance?.meetingLink || assistance?.meetingUrl || application.assistanceSession?.meetingUrl || application.assistanceSession?.meetingLink;
+              const hasMeetingLink = Boolean(rawMeetingLink && rawMeetingLink.trim() !== '' && rawMeetingLink.trim() !== 'https://meet.google.com/new');
+              const meetingLink = hasMeetingLink ? rawMeetingLink.trim() : null;
+              const agentDisplayName = assistance?.assignedAgent?.profile?.fullName || assistance?.agentName || application.assistanceSession?.agentName || 'Assigned Specialist';
 
-            {/* Google Meet Launch Button */}
-            <a
-              href={application.assistanceSession?.meetingUrl || 'https://meet.google.com/new'}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              <Video size={18} />
-              <span>Launch Google Meet Session</span>
-              <ExternalLink size={14} />
-            </a>
+              return (
+                <>
+                  <div style={{
+                    backgroundColor: 'var(--color-bg)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '1rem',
+                    border: '1px solid var(--color-border)',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.6rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Specialist Desk Agent:</span>
+                      <strong>{agentDisplayName}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Assistance Status:</span>
+                      <span className="badge badge-primary">{assistance?.status || application.assistanceSession?.status || 'Scheduled'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Scheduled Time:</span>
+                      <strong>
+                        {assistance?.scheduledAt || application.assistanceSession?.scheduledAt || assistance?.preferredDate ? 
+                          new Date(assistance?.scheduledAt || application.assistanceSession?.scheduledAt || assistance?.preferredDate).toLocaleString('en-IN') : 
+                          'Confirmed on booking'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Google Meet Launch Button or Awaiting Agent Link State */}
+                  {hasMeetingLink ? (
+                    <a
+                      href={meetingLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-primary"
+                      style={{ width: '100%', justifyContent: 'center' }}
+                    >
+                      <Video size={18} />
+                      <span>Launch Google Meet Session</span>
+                      <ExternalLink size={14} />
+                    </a>
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      padding: '1rem',
+                      backgroundColor: 'var(--color-surface-hover)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px dashed var(--color-border)',
+                      textAlign: 'center',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--color-accent)', fontWeight: 600, fontSize: '0.88rem' }}>
+                        <Clock size={16} />
+                        <span>Google Meet Link Pending</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                        Your assigned desk specialist will generate and attach the video call link when initiating your session. This button will be enabled automatically once saved.
+                      </p>
+                      <button
+                        type="button"
+                        disabled
+                        className="btn btn-secondary"
+                        style={{
+                          width: '100%',
+                          justifyContent: 'center',
+                          opacity: 0.6,
+                          cursor: 'not-allowed',
+                          pointerEvents: 'none',
+                          marginTop: '0.35rem'
+                        }}
+                      >
+                        <Video size={16} />
+                        <span>Launch Google Meet Session (Awaiting Agent Link)</span>
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             <div style={{
               display: 'flex',
