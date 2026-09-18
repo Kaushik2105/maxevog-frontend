@@ -24,6 +24,7 @@ export const ApplicationDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [authorizing, setAuthorizing] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
   const [authorizationRemarks, setAuthorizationRemarks] = useState('');
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState('');
@@ -60,15 +61,20 @@ export const ApplicationDetailPage = () => {
   };
 
   const handleAuthorize = async () => {
+    if (!consentConfirmed) {
+      setError('Please check the verification confirmation checkbox before authorizing submission.');
+      return;
+    }
     setAuthorizing(true);
     setError('');
     try {
       const res = await applicationsApi.authorizeSubmission(id, {
         authorized: true,
-        remarks: authorizationRemarks || 'Authorized by candidate after live preview'
+        remarks: authorizationRemarks || 'Authorized by candidate after verifying all entered data and documents'
       });
       if (res.data?.success) {
         setShowAuthModal(false);
+        setConsentConfirmed(false);
         fetchDetails();
       }
     } catch (err) {
@@ -222,7 +228,10 @@ export const ApplicationDetailPage = () => {
             <div>
               {isConsentPending ? (
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={() => {
+                    setConsentConfirmed(false);
+                    setShowAuthModal(true);
+                  }}
                   className="btn btn-secondary"
                   style={{ animation: 'pulse 2s infinite' }}
                 >
@@ -338,7 +347,10 @@ export const ApplicationDetailPage = () => {
             </div>
 
             <button
-              onClick={() => setShowAuthModal(true)}
+              onClick={() => {
+                setConsentConfirmed(false);
+                setShowAuthModal(true);
+              }}
               className="btn btn-secondary btn-lg"
             >
               Review & Authorize Submission
@@ -592,7 +604,10 @@ export const ApplicationDetailPage = () => {
         {/* Modal: Candidate Authorization */}
         <Modal
           isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
+          onClose={() => {
+            setShowAuthModal(false);
+            setConsentConfirmed(false);
+          }}
           title="Candidate Consent & Authorization Mandate"
         >
           <div>
@@ -619,26 +634,79 @@ export const ApplicationDetailPage = () => {
               flexDirection: 'column',
               gap: '0.4rem'
             }}>
-              <div><strong>Target Recruitment:</strong> {application.Job?.title}</div>
-              <div><strong>Board Authority:</strong> {application.Job?.organization}</div>
-              <div><strong>Board Fee:</strong> ₹{application.Job?.fee || 0}</div>
+              <div><strong>Target Recruitment:</strong> {application.Job?.title || application.job?.title || 'N/A'}</div>
+              <div><strong>Board Authority:</strong> {application.Job?.organization || application.job?.organization || 'N/A'}</div>
+            </div>
+
+            {/* Verification Checkbox Confirmation */}
+            <div
+              style={{
+                backgroundColor: consentConfirmed ? '#F0FDF4' : 'var(--color-bg)',
+                border: consentConfirmed ? '1.5px solid #16A34A' : '1.5px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.9rem',
+                marginBottom: '1rem',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onClick={() => setConsentConfirmed(!consentConfirmed)}
+            >
+              <label
+                htmlFor="candidate-consent-checkbox"
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  cursor: 'pointer',
+                  margin: 0
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  id="candidate-consent-checkbox"
+                  checked={consentConfirmed}
+                  onChange={(e) => setConsentConfirmed(e.target.checked)}
+                  style={{
+                    marginTop: '0.2rem',
+                    width: '18px',
+                    height: '18px',
+                    accentColor: 'var(--color-secondary)',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                />
+                <div style={{ fontSize: '0.83rem', lineHeight: '1.45', color: 'var(--color-text-body)' }}>
+                  <strong style={{ color: 'var(--color-primary)', display: 'block', marginBottom: '0.25rem' }}>
+                    Applicant Data Verification Confirmation
+                  </strong>
+                  I confirm that I have checked every data entered by the assigned assistant, and it is correct as per my instructions and documents.
+                  <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                    If you notice something off, please click <strong>"Review Again"</strong> below to notify your assistant before authorizing.
+                  </span>
+                </div>
+              </label>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Optional Aspirant Remarks / Special Notes</label>
+              <label className="form-label" style={{ fontSize: '0.82rem' }}>Optional Aspirant Remarks / Special Notes</label>
               <textarea
                 className="form-control"
                 rows={2}
                 placeholder="I confirm all particulars, dates, and caste certificates are accurate."
                 value={authorizationRemarks}
                 onChange={(e) => setAuthorizationRemarks(e.target.value)}
+                style={{ fontSize: '0.85rem' }}
               />
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
               <button
                 type="button"
-                onClick={() => setShowAuthModal(false)}
+                onClick={() => {
+                  setShowAuthModal(false);
+                  setConsentConfirmed(false);
+                }}
                 className="btn btn-outline"
                 style={{ flex: 1 }}
               >
@@ -647,9 +715,19 @@ export const ApplicationDetailPage = () => {
               <button
                 type="button"
                 onClick={handleAuthorize}
-                disabled={authorizing}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
+                disabled={authorizing || !consentConfirmed}
+                className={`btn ${consentConfirmed ? 'btn-secondary' : 'btn-outline'}`}
+                style={{
+                  flex: 1,
+                  opacity: !consentConfirmed ? 0.55 : 1,
+                  cursor: !consentConfirmed ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem'
+                }}
+                title={!consentConfirmed ? 'Please check the verification checkbox to enable submission' : 'Confirm and authorize submission'}
               >
                 <FileCheck size={16} />
                 <span>{authorizing ? 'Submitting...' : 'Confirm & Authorize Submission'}</span>
