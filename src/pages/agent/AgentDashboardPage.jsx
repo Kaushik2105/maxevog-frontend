@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { agentApi } from '../../api/agent.api';
 import { adminApi } from '../../api/admin.api';
 import { useAuth } from '../../context/AuthContext';
+import { getSocket } from '../../utils/socket';
 import { 
   Headphones, 
   Video, 
@@ -449,10 +450,26 @@ export const AgentDashboardPage = () => {
 
   useEffect(() => {
     loadData();
+
+    const socket = getSocket();
+    socket.emit('join_agents');
+
+    const handleRealtimeUpdate = () => {
+      // Silently refresh sessions, desk metrics, and applications without disrupting agent typing
+      loadData(true);
+    };
+
+    socket.on('application_updated', handleRealtimeUpdate);
+    socket.on('assistance_updated', handleRealtimeUpdate);
+
+    return () => {
+      socket.off('application_updated', handleRealtimeUpdate);
+      socket.off('assistance_updated', handleRealtimeUpdate);
+    };
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const [dashRes, sessionsRes, appsRes] = await Promise.all([
         agentApi.getDashboard(),
@@ -1327,7 +1344,7 @@ export const AgentDashboardPage = () => {
                               </div>
                               {doc.url ? (
                                 <a
-                                  href={doc.url}
+                                  href={doc.url?.replace(/\.pdf\.pdf$/i, '.pdf')}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="btn btn-outline btn-sm"

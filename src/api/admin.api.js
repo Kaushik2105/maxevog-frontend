@@ -32,10 +32,10 @@ export const adminApi = {
   getAllApplications: (params) => apiClient.get('/admin/applications', { params }),
 
   // Financials & Transactions
-  getFinancials: () => apiClient.get('/admin/financials'),
+  getFinancials: (params) => apiClient.get('/admin/financials', { params }),
 
   // Desk Agents & Workload
-  getAgents: () => apiClient.get('/admin/agents'),
+  getAgents: (params) => apiClient.get('/admin/agents', { params }),
   createAgent: (data) => apiClient.post('/admin/agents', data),
 
   // Audit Logs

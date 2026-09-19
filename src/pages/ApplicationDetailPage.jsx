@@ -17,6 +17,7 @@ import {
   FileText
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
+import { getSocket } from '../utils/socket';
 
 export const ApplicationDetailPage = () => {
   const { id } = useParams();
@@ -30,6 +31,7 @@ export const ApplicationDetailPage = () => {
   const [uploadSuccess, setUploadSuccess] = useState('');
   const [deletingDocId, setDeletingDocId] = useState(null);
   const [error, setError] = useState('');
+  const [lastLiveSync, setLastLiveSync] = useState(null);
 
   const stages = [
     { key: 'draft', label: 'Draft Created' },
@@ -43,6 +45,37 @@ export const ApplicationDetailPage = () => {
 
   useEffect(() => {
     fetchDetails();
+
+    // Attach real-time WebSocket listener
+    const socket = getSocket();
+    if (id) {
+      socket.emit('join_application', id);
+    }
+
+    const handleRealtimeUpdate = (data) => {
+      // Refresh application record if update applies to this application
+      if (!data || data.id === id || data.applicationId === id) {
+        applicationsApi.getApplicationById(id)
+          .then((res) => {
+            if (res.data?.success) {
+              setApplication(res.data.data.application || res.data.data);
+              setLastLiveSync(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            }
+          })
+          .catch((err) => console.error('Real-time sync refresh failed:', err));
+      }
+    };
+
+    socket.on('application_updated', handleRealtimeUpdate);
+    socket.on('assistance_updated', handleRealtimeUpdate);
+
+    return () => {
+      if (id) {
+        socket.emit('leave_application', id);
+      }
+      socket.off('application_updated', handleRealtimeUpdate);
+      socket.off('assistance_updated', handleRealtimeUpdate);
+    };
   }, [id]);
 
   const fetchDetails = async () => {
@@ -216,6 +249,10 @@ export const ApplicationDetailPage = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
                 <span className="badge badge-primary">{application.Job?.organization || 'Recruitment Board'}</span>
                 <span className="badge badge-neutral">Ref: {application.applicationNumber || application.id.slice(0, 8)}</span>
+                <span className="badge" style={{ backgroundColor: '#DCFCE7', color: '#16A34A', border: '1px solid #86EFAC', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block' }}></span>
+                  Real-Time Sync {lastLiveSync ? `(${lastLiveSync})` : 'Active'}
+                </span>
               </div>
               <h1 style={{ fontSize: '1.75rem', color: 'var(--color-primary)', marginBottom: '0.5rem' }}>
                 {application.Job?.title || 'Examination Application'}
@@ -541,7 +578,7 @@ export const ApplicationDetailPage = () => {
                       <FileText size={16} color="var(--color-primary)" style={{ flexShrink: 0 }} />
                       {doc.url ? (
                         <a
-                          href={doc.url}
+                          href={doc.url?.replace(/\.pdf\.pdf$/i, '.pdf')}
                           target="_blank"
                           rel="noreferrer"
                           style={{
@@ -565,7 +602,7 @@ export const ApplicationDetailPage = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                       {doc.url && (
                         <a
-                          href={doc.url}
+                          href={doc.url?.replace(/\.pdf\.pdf$/i, '.pdf')}
                           target="_blank"
                           rel="noreferrer"
                           className="btn btn-outline btn-sm"

@@ -99,6 +99,35 @@ export const AdminDashboardPage = () => {
   const [selectedAuditLog, setSelectedAuditLog] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // 15-Item Pagination States across 7 sections
+  const [auditPage, setAuditPage] = useState(1);
+  const [hasMoreAudit, setHasMoreAudit] = useState(false);
+  const [loadingMoreAudit, setLoadingMoreAudit] = useState(false);
+
+  const [financialsPage, setFinancialsPage] = useState(1);
+  const [hasMoreFinancials, setHasMoreFinancials] = useState(false);
+  const [loadingMoreFinancials, setLoadingMoreFinancials] = useState(false);
+
+  const [usersPage, setUsersPage] = useState(1);
+  const [hasMoreUsers, setHasMoreUsers] = useState(false);
+  const [loadingMoreUsers, setLoadingMoreUsers] = useState(false);
+
+  const [agentsPage, setAgentsPage] = useState(1);
+  const [hasMoreAgents, setHasMoreAgents] = useState(false);
+  const [loadingMoreAgents, setLoadingMoreAgents] = useState(false);
+
+  const [jobsPage, setJobsPage] = useState(1);
+  const [hasMoreJobs, setHasMoreJobs] = useState(false);
+  const [loadingMoreJobs, setLoadingMoreJobs] = useState(false);
+
+  const [applicationsPage, setApplicationsPage] = useState(1);
+  const [hasMoreApplications, setHasMoreApplications] = useState(false);
+  const [loadingMoreApplications, setLoadingMoreApplications] = useState(false);
+
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [hasMoreFeedback, setHasMoreFeedback] = useState(false);
+  const [loadingMoreFeedback, setLoadingMoreFeedback] = useState(false);
+
   // Daily Assistance Capacity Controls
   const [selectedLimitDate, setSelectedLimitDate] = useState(new Date().toISOString().split('T')[0]);
   const [dailyLimitsData, setDailyLimitsData] = useState([]);
@@ -192,19 +221,31 @@ export const AdminDashboardPage = () => {
           });
         }
       } else if (activeTab === 'applications') {
-        const res = await adminApi.getAllApplications({ limit: 100 });
+        setApplicationsPage(1);
+        const res = await adminApi.getAllApplications({ page: 1, limit: 15 });
         if (res.data?.success) {
-          setApplications(res.data.data.applications || []);
+          const list = res.data.data.applications || [];
+          setApplications(list);
+          const total = res.data.meta?.total;
+          setHasMoreApplications(total !== undefined ? list.length < total : list.length === 15);
         }
       } else if (activeTab === 'recruitments') {
-        const res = await adminApi.getJobs({ limit: 100 });
+        setJobsPage(1);
+        const res = await adminApi.getJobs({ page: 1, limit: 15 });
         if (res.data?.success) {
-          setJobs(res.data.data.jobs || res.data.data || []);
+          const list = res.data.data.jobs || res.data.data || [];
+          setJobs(list);
+          const total = res.data.meta?.total;
+          setHasMoreJobs(total !== undefined ? list.length < total : list.length === 15);
         }
       } else if (activeTab === 'users') {
-        const res = await adminApi.getUsers({ limit: 100, role: 'USER' });
+        setUsersPage(1);
+        const res = await adminApi.getUsers({ page: 1, limit: 15, role: 'USER' });
         if (res.data?.success) {
-          setUsersList(res.data.data.users || []);
+          const list = res.data.data.users || [];
+          setUsersList(list);
+          const total = res.data.meta?.total;
+          setHasMoreUsers(total !== undefined ? list.length < total : list.length === 15);
         }
       } else if (activeTab === 'assistance') {
         const [sessionsRes, limitsRes, agentsRes] = await Promise.all([
@@ -227,30 +268,191 @@ export const AdminDashboardPage = () => {
           setAgentsList(agentsRes.data.data.agents || []);
         }
       } else if (activeTab === 'financials') {
-        const res = await adminApi.getFinancials();
+        setFinancialsPage(1);
+        const res = await adminApi.getFinancials({ page: 1, limit: 15 });
         if (res.data?.success) {
           setFinancials(res.data.data);
+          const list = res.data.data?.recentTransactions || [];
+          const total = res.data.meta?.total;
+          setHasMoreFinancials(total !== undefined ? list.length < total : list.length === 15);
         }
       } else if (activeTab === 'feedback') {
-        const res = await adminApi.getAllFeedbacks({ limit: 100 });
+        setFeedbackPage(1);
+        const res = await adminApi.getAllFeedbacks({ page: 1, limit: 15 });
         if (res.data?.success) {
-          setFeedbacks(res.data.data.feedbacks || []);
+          const list = res.data.data.feedbacks || [];
+          setFeedbacks(list);
+          const total = res.data.meta?.total;
+          setHasMoreFeedback(total !== undefined ? list.length < total : list.length === 15);
         }
       } else if (activeTab === 'agents') {
-        const res = await adminApi.getAgents();
+        setAgentsPage(1);
+        const res = await adminApi.getAgents({ page: 1, limit: 15 });
         if (res.data?.success) {
-          setAgentsList(res.data.data.agents || []);
+          const list = res.data.data.agents || [];
+          setAgentsList(list);
+          const total = res.data.meta?.total;
+          setHasMoreAgents(total !== undefined ? list.length < total : list.length === 15);
         }
       } else if (activeTab === 'audit') {
-        const res = await adminApi.getAuditLogs({ limit: 100 });
+        setAuditPage(1);
+        const res = await adminApi.getAuditLogs({ page: 1, limit: 15 });
         if (res.data?.success) {
-          setAuditLogs(res.data.data.logs || []);
+          const list = res.data.data.logs || [];
+          setAuditLogs(list);
+          const total = res.data.meta?.total;
+          setHasMoreAudit(total !== undefined ? list.length < total : list.length === 15);
         }
       }
     } catch (err) {
       console.error('Failed to load admin dataset:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load More 15 Handlers for 7 Admin Sections
+  const handleLoadMoreAudit = async () => {
+    if (loadingMoreAudit) return;
+    setLoadingMoreAudit(true);
+    try {
+      const nextPage = auditPage + 1;
+      const res = await adminApi.getAuditLogs({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextLogs = res.data.data.logs || [];
+        setAuditLogs((prev) => [...prev, ...nextLogs]);
+        setAuditPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreAudit(total !== undefined ? (auditLogs.length + nextLogs.length) < total : nextLogs.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more audit logs:', err);
+    } finally {
+      setLoadingMoreAudit(false);
+    }
+  };
+
+  const handleLoadMoreFinancials = async () => {
+    if (loadingMoreFinancials) return;
+    setLoadingMoreFinancials(true);
+    try {
+      const nextPage = financialsPage + 1;
+      const res = await adminApi.getFinancials({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextTxs = res.data.data?.recentTransactions || [];
+        setFinancials((prev) => ({
+          ...prev,
+          recentTransactions: [...(prev?.recentTransactions || []), ...nextTxs],
+        }));
+        setFinancialsPage(nextPage);
+        const total = res.data.meta?.total;
+        const currentCount = (financials?.recentTransactions?.length || 0) + nextTxs.length;
+        setHasMoreFinancials(total !== undefined ? currentCount < total : nextTxs.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more financials:', err);
+    } finally {
+      setLoadingMoreFinancials(false);
+    }
+  };
+
+  const handleLoadMoreUsers = async () => {
+    if (loadingMoreUsers) return;
+    setLoadingMoreUsers(true);
+    try {
+      const nextPage = usersPage + 1;
+      const res = await adminApi.getUsers({ page: nextPage, limit: 15, role: 'USER' });
+      if (res.data?.success) {
+        const nextUsers = res.data.data.users || [];
+        setUsersList((prev) => [...prev, ...nextUsers]);
+        setUsersPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreUsers(total !== undefined ? (usersList.length + nextUsers.length) < total : nextUsers.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more users:', err);
+    } finally {
+      setLoadingMoreUsers(false);
+    }
+  };
+
+  const handleLoadMoreAgents = async () => {
+    if (loadingMoreAgents) return;
+    setLoadingMoreAgents(true);
+    try {
+      const nextPage = agentsPage + 1;
+      const res = await adminApi.getAgents({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextAgents = res.data.data.agents || [];
+        setAgentsList((prev) => [...prev, ...nextAgents]);
+        setAgentsPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreAgents(total !== undefined ? (agentsList.length + nextAgents.length) < total : nextAgents.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more agents:', err);
+    } finally {
+      setLoadingMoreAgents(false);
+    }
+  };
+
+  const handleLoadMoreJobs = async () => {
+    if (loadingMoreJobs) return;
+    setLoadingMoreJobs(true);
+    try {
+      const nextPage = jobsPage + 1;
+      const res = await adminApi.getJobs({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextJobs = res.data.data.jobs || res.data.data || [];
+        setJobs((prev) => [...prev, ...nextJobs]);
+        setJobsPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreJobs(total !== undefined ? (jobs.length + nextJobs.length) < total : nextJobs.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more jobs:', err);
+    } finally {
+      setLoadingMoreJobs(false);
+    }
+  };
+
+  const handleLoadMoreApplications = async () => {
+    if (loadingMoreApplications) return;
+    setLoadingMoreApplications(true);
+    try {
+      const nextPage = applicationsPage + 1;
+      const res = await adminApi.getAllApplications({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextApps = res.data.data.applications || [];
+        setApplications((prev) => [...prev, ...nextApps]);
+        setApplicationsPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreApplications(total !== undefined ? (applications.length + nextApps.length) < total : nextApps.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more applications:', err);
+    } finally {
+      setLoadingMoreApplications(false);
+    }
+  };
+
+  const handleLoadMoreFeedback = async () => {
+    if (loadingMoreFeedback) return;
+    setLoadingMoreFeedback(true);
+    try {
+      const nextPage = feedbackPage + 1;
+      const res = await adminApi.getAllFeedbacks({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextFeedbacks = res.data.data.feedbacks || [];
+        setFeedbacks((prev) => [...prev, ...nextFeedbacks]);
+        setFeedbackPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreFeedback(total !== undefined ? (feedbacks.length + nextFeedbacks.length) < total : nextFeedbacks.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more feedbacks:', err);
+    } finally {
+      setLoadingMoreFeedback(false);
     }
   };
 
@@ -918,6 +1120,19 @@ export const AdminDashboardPage = () => {
                 </table>
               </div>
             )}
+            {hasMoreApplications && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleLoadMoreApplications}
+                  disabled={loadingMoreApplications}
+                  className="btn btn-outline btn-sm"
+                  style={{ padding: '0.55rem 1.4rem', fontWeight: 600, borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                >
+                  {loadingMoreApplications ? 'Loading More Applications...' : 'See More Applications (Load Next 15)'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1016,6 +1231,19 @@ export const AdminDashboardPage = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {hasMoreJobs && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleLoadMoreJobs}
+                  disabled={loadingMoreJobs}
+                  className="btn btn-outline btn-sm"
+                  style={{ padding: '0.55rem 1.4rem', fontWeight: 600, borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                >
+                  {loadingMoreJobs ? 'Loading More Recruitments...' : 'See More Recruitments (Load Next 15)'}
+                </button>
               </div>
             )}
           </div>
@@ -1268,6 +1496,19 @@ export const AdminDashboardPage = () => {
                 </tbody>
               </table>
             </div>
+            {hasMoreUsers && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleLoadMoreUsers}
+                  disabled={loadingMoreUsers}
+                  className="btn btn-outline btn-sm"
+                  style={{ padding: '0.55rem 1.4rem', fontWeight: 600, borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+                >
+                  {loadingMoreUsers ? 'Loading More Candidates...' : 'See More Candidates (Load Next 15)'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1369,6 +1610,18 @@ export const AdminDashboardPage = () => {
                 </table>
               </div>
             )}
+            {hasMoreAgents && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <button
+                  onClick={handleLoadMoreAgents}
+                  disabled={loadingMoreAgents}
+                  className="btn btn-outline"
+                  style={{ minWidth: '180px' }}
+                >
+                  {loadingMoreAgents ? 'Loading more...' : 'See More Desk Agents'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1459,6 +1712,18 @@ export const AdminDashboardPage = () => {
                   Ledger active. Transactions will be recorded upon session checkout.
                 </p>
               )}
+              {hasMoreFinancials && (
+                <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                  <button
+                    onClick={handleLoadMoreFinancials}
+                    disabled={loadingMoreFinancials}
+                    className="btn btn-outline"
+                    style={{ minWidth: '180px' }}
+                  >
+                    {loadingMoreFinancials ? 'Loading more...' : 'See More Transactions'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1515,6 +1780,18 @@ export const AdminDashboardPage = () => {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+            {hasMoreFeedback && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <button
+                  onClick={handleLoadMoreFeedback}
+                  disabled={loadingMoreFeedback}
+                  className="btn btn-outline"
+                  style={{ minWidth: '180px' }}
+                >
+                  {loadingMoreFeedback ? 'Loading more...' : 'See More Grievances'}
+                </button>
               </div>
             )}
           </div>
@@ -1627,6 +1904,18 @@ export const AdminDashboardPage = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {hasMoreAudit && (
+              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                <button
+                  onClick={handleLoadMoreAudit}
+                  disabled={loadingMoreAudit}
+                  className="btn btn-outline"
+                  style={{ minWidth: '180px' }}
+                >
+                  {loadingMoreAudit ? 'Loading more...' : 'See More Audit Logs'}
+                </button>
               </div>
             )}
           </div>

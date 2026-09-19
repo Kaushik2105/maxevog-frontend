@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { applicationsApi } from '../api/applications.api';
+import { getSocket } from '../utils/socket';
 import { 
   FileText, 
   Clock, 
@@ -26,7 +27,30 @@ export const ApplicationsPage = () => {
 
   useEffect(() => {
     fetchApplications();
-  }, []);
+
+    const socket = getSocket();
+    if (user?.id) {
+      socket.emit('join_user', user.id);
+    }
+
+    const handleRealtimeUpdate = () => {
+      applicationsApi.getMyApplications()
+        .then((res) => {
+          if (res.data?.success) {
+            setApplications(res.data.data.applications || res.data.data || []);
+          }
+        })
+        .catch((err) => console.error('Silent refresh failed:', err));
+    };
+
+    socket.on('application_updated', handleRealtimeUpdate);
+    socket.on('assistance_updated', handleRealtimeUpdate);
+
+    return () => {
+      socket.off('application_updated', handleRealtimeUpdate);
+      socket.off('assistance_updated', handleRealtimeUpdate);
+    };
+  }, [user?.id]);
 
   const fetchApplications = async () => {
     setLoading(true);
