@@ -21,7 +21,7 @@ import {
 export const AssistanceBookingPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated, isPro, user } = useAuth();
+  const { isAuthenticated, isPro, user, refreshUser } = useAuth();
 
   const preselectedJobId = searchParams.get('jobId');
 
@@ -181,6 +181,7 @@ export const AssistanceBookingPage = () => {
       });
 
       if (res.data?.success) {
+        if (refreshUser) refreshUser();
         navigate('/applications', {
           state: { message: 'Assistance session confirmed! Your desk specialist will connect on the scheduled date.' }
         });
@@ -225,6 +226,7 @@ export const AssistanceBookingPage = () => {
       });
 
       if (res.data?.success) {
+        if (refreshUser) refreshUser();
         setShowUrgentModal(false);
         navigate('/applications', {
           state: { message: 'Priority / Urgent request submitted successfully! An idle desk specialist will review and accept your session shortly.' }
@@ -240,7 +242,8 @@ export const AssistanceBookingPage = () => {
   };
 
   const govtFee = selectedJob?.fee || 0;
-  const standardFee = isPro ? 0 : 69;
+  const hasFreeCredit = isPro && (user?.assistanceCredits ? user.assistanceCredits.available : true);
+  const standardFee = hasFreeCredit ? 0 : 69;
 
   return (
     <div style={{ padding: '2.5rem 0 4rem' }}>
@@ -568,10 +571,15 @@ export const AssistanceBookingPage = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
                     <span style={{ color: 'var(--color-text-muted)' }}>maxEvoG Desk Assistance Fee:</span>
                     <div>
-                      {isPro ? (
+                      {hasFreeCredit ? (
                         <span>
                           <s style={{ color: 'var(--color-text-muted)', marginRight: '0.4rem' }}>₹69</s>
-                          <strong style={{ color: 'var(--color-accent)' }}>FREE (Pro)</strong>
+                          <strong style={{ color: 'var(--color-accent)' }}>FREE (1 Pro Credit)</strong>
+                        </span>
+                      ) : isPro ? (
+                        <span>
+                          <strong>₹69</strong>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginLeft: '0.35rem' }}>(Pro credit used)</span>
                         </span>
                       ) : (
                         <strong>₹69</strong>
@@ -615,9 +623,9 @@ export const AssistanceBookingPage = () => {
                     fontSize: '0.78rem',
                     color: 'var(--color-secondary)'
                   }}>
-                    <strong>Aspirant Pro:</strong> Get 1 free assistance session + WhatsApp alerts for ₹249/3 months.{' '}
+                    <strong>maxEvoG Pro Club:</strong> Get 1 free 1-on-1 assistance session + Telegram & Email deadline protection for ₹249 / 3 months.{' '}
                     <Link to="/membership" style={{ textDecoration: 'underline', fontWeight: 700 }}>
-                      View Plan
+                      Join Pro Club
                     </Link>
                   </div>
                 )}

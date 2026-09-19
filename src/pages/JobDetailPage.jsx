@@ -34,6 +34,8 @@ export const JobDetailPage = () => {
   const [eligibility, setEligibility] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [isTracked, setIsTracked] = useState(false);
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   const handleBookAssisted = (e) => {
     if (!isAuthenticated) {
@@ -46,6 +48,37 @@ export const JobDetailPage = () => {
     fetchJobDetails();
   }, [id]);
 
+  const checkTrackedStatus = async (jobId) => {
+    try {
+      const res = await proApi.getTrackedJobs({ limit: 100 });
+      if (res.data?.success) {
+        const found = res.data.data.trackedJobs?.some((t) => t.jobId === jobId);
+        setIsTracked(Boolean(found));
+      }
+    } catch (e) {}
+  };
+
+  const handleToggleTrack = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/jobs/${id}` } });
+      return;
+    }
+    setTrackingLoading(true);
+    try {
+      if (isTracked) {
+        await proApi.untrackJob(id);
+        setIsTracked(false);
+      } else {
+        await proApi.trackJob(id);
+        setIsTracked(true);
+      }
+    } catch (e) {
+      console.error('Failed to toggle tracking:', e);
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
   const fetchJobDetails = async () => {
     setLoading(true);
     try {
@@ -56,6 +89,7 @@ export const JobDetailPage = () => {
 
         if (isAuthenticated) {
           checkCandidateEligibility(id);
+          checkTrackedStatus(id);
         }
       }
     } catch (err) {
@@ -254,7 +288,7 @@ export const JobDetailPage = () => {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {job.officialUrl && (
                 <a
                   href={job.officialUrl}
@@ -266,6 +300,28 @@ export const JobDetailPage = () => {
                   <ExternalLink size={15} />
                 </a>
               )}
+
+              {!isAdmin && !isAgent && (
+                <button
+                  type="button"
+                  onClick={handleToggleTrack}
+                  disabled={trackingLoading}
+                  className="btn btn-outline"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    backgroundColor: isTracked ? '#ECFDF5' : 'transparent',
+                    borderColor: isTracked ? '#A7F3D0' : 'var(--color-border)',
+                    color: isTracked ? '#047857' : 'inherit',
+                    fontWeight: 600,
+                  }}
+                >
+                  <CheckCircle2 size={16} color={isTracked ? "#10B981" : "var(--color-text-muted)"} />
+                  <span>{isTracked ? 'Tracking Deadline' : 'Track Deadline'}</span>
+                </button>
+              )}
+
               {!isAdmin && !isAgent && (
                 <Link
                   to={`/assistance/book?jobId=${job.id}`}
@@ -273,7 +329,11 @@ export const JobDetailPage = () => {
                   className="btn btn-secondary"
                 >
                   <Sparkles size={16} />
-                  <span>Book Assisted Application (₹69)</span>
+                  <span>
+                    {user?.isProMember && user?.assistanceCredits?.available !== false
+                      ? 'Book Assisted Application (1 Free Credit)'
+                      : 'Book Assisted Application (₹69)'}
+                  </span>
                 </Link>
               )}
             </div>

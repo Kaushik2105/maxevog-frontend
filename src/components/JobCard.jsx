@@ -156,38 +156,43 @@ export const JobCard = ({ job }) => {
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '0.75rem',
-        paddingTop: '0.85rem',
-        borderTop: '1px solid var(--color-border)',
-        marginTop: 'auto'
-      }}>
-        <Link
-          to={`/jobs/${job.id}`}
-          className={isAdmin || isAgent ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm"}
-          style={{ flex: 1, justifyContent: 'center' }}
-        >
-          <span>View Specs</span>
-          <ArrowRight size={14} />
-        </Link>
-
-        {/* Hide Apply Assisted button for staff (Admin / Agent) */}
-        {!isAdmin && !isAgent && (
+        {/* Action Footer */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          paddingTop: '0.85rem',
+          borderTop: '1px solid var(--color-border)',
+          marginTop: 'auto',
+          flexWrap: 'wrap'
+        }}>
           <Link
-            to={`/assistance/book?jobId=${job.id}`}
-            onClick={handleApplyAssisted}
-            className="btn btn-secondary btn-sm"
-            style={{ flex: 1, justifyContent: 'center' }}
+            to={`/jobs/${job.id}`}
+            className="btn btn-outline btn-sm"
+            style={{ flex: '1 1 110px', justifyContent: 'center' }}
           >
-            <Sparkles size={14} />
-            <span>Apply Assisted (₹69)</span>
+            <span>Specs & Criteria</span>
+            <ArrowRight size={13} />
           </Link>
-        )}
+
+          {/* Hide Apply Assisted button for staff (Admin / Agent) */}
+          {!isAdmin && !isAgent && (
+            <Link
+              to={`/assistance/book?jobId=${job.id}`}
+              onClick={handleApplyAssisted}
+              className="btn btn-secondary btn-sm"
+              style={{ flex: '1 1 140px', justifyContent: 'center', fontSize: '0.8rem' }}
+            >
+              <Sparkles size={13} />
+              <span>
+                {user?.isProMember && user?.assistanceCredits?.available !== false
+                  ? 'Apply Assisted (1 Free Credit)'
+                  : 'Apply Assisted (₹69)'}
+              </span>
+            </Link>
+          )}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };

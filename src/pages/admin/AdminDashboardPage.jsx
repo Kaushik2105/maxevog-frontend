@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../api/admin.api';
 import { jobsApi } from '../../api/jobs.api';
+import { proApi } from '../../api/pro.api';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Users, 
@@ -30,7 +31,10 @@ import {
   X,
   Edit,
   Eye,
-  EyeOff
+  EyeOff,
+  Bell,
+  Send,
+  RefreshCw
 } from 'lucide-react';
 import { Modal } from '../../components/Modal';
 
@@ -127,6 +131,18 @@ export const AdminDashboardPage = () => {
   const [feedbackPage, setFeedbackPage] = useState(1);
   const [hasMoreFeedback, setHasMoreFeedback] = useState(false);
   const [loadingMoreFeedback, setLoadingMoreFeedback] = useState(false);
+
+  // Pro Club Management States
+  const [proStats, setProStats] = useState(null);
+  const [proSubscribers, setProSubscribers] = useState([]);
+  const [proLogs, setProLogs] = useState([]);
+  const [proSubscribersPage, setProSubscribersPage] = useState(1);
+  const [hasMoreProSubscribers, setHasMoreProSubscribers] = useState(false);
+  const [loadingMoreProSubscribers, setLoadingMoreProSubscribers] = useState(false);
+  const [proLogsPage, setProLogsPage] = useState(1);
+  const [hasMoreProLogs, setHasMoreProLogs] = useState(false);
+  const [loadingMoreProLogs, setLoadingMoreProLogs] = useState(false);
+  const [triggeringReminders, setTriggeringReminders] = useState(false);
 
   // Daily Assistance Capacity Controls
   const [selectedLimitDate, setSelectedLimitDate] = useState(new Date().toISOString().split('T')[0]);
@@ -303,11 +319,90 @@ export const AdminDashboardPage = () => {
           const total = res.data.meta?.total;
           setHasMoreAudit(total !== undefined ? list.length < total : list.length === 15);
         }
+      } else if (activeTab === 'proClub') {
+        setProSubscribersPage(1);
+        setProLogsPage(1);
+        const [statsRes, subsRes, logsRes] = await Promise.all([
+          proApi.getAdminStats(),
+          proApi.getAdminSubscribers({ page: 1, limit: 15 }),
+          proApi.getAdminNotificationLogs({ page: 1, limit: 15 }),
+        ]);
+        if (statsRes.data?.success) {
+          setProStats(statsRes.data.data);
+        }
+        if (subsRes.data?.success) {
+          const list = subsRes.data.data.subscribers || [];
+          setProSubscribers(list);
+          const total = subsRes.data.meta?.total;
+          setHasMoreProSubscribers(total !== undefined ? list.length < total : list.length === 15);
+        }
+        if (logsRes.data?.success) {
+          const list = logsRes.data.data.logs || [];
+          setProLogs(list);
+          const total = logsRes.data.meta?.total;
+          setHasMoreProLogs(total !== undefined ? list.length < total : list.length === 15);
+        }
       }
     } catch (err) {
       console.error('Failed to load admin dataset:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Pro Club Pagination & Engine Handlers
+  const handleLoadMoreProSubscribers = async () => {
+    if (loadingMoreProSubscribers) return;
+    setLoadingMoreProSubscribers(true);
+    try {
+      const nextPage = proSubscribersPage + 1;
+      const res = await proApi.getAdminSubscribers({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextSubs = res.data.data.subscribers || [];
+        setProSubscribers((prev) => [...prev, ...nextSubs]);
+        setProSubscribersPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreProSubscribers(total !== undefined ? (proSubscribers.length + nextSubs.length) < total : nextSubs.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more Pro subscribers:', err);
+    } finally {
+      setLoadingMoreProSubscribers(false);
+    }
+  };
+
+  const handleLoadMoreProLogs = async () => {
+    if (loadingMoreProLogs) return;
+    setLoadingMoreProLogs(true);
+    try {
+      const nextPage = proLogsPage + 1;
+      const res = await proApi.getAdminNotificationLogs({ page: nextPage, limit: 15 });
+      if (res.data?.success) {
+        const nextLogs = res.data.data.logs || [];
+        setProLogs((prev) => [...prev, ...nextLogs]);
+        setProLogsPage(nextPage);
+        const total = res.data.meta?.total;
+        setHasMoreProLogs(total !== undefined ? (proLogs.length + nextLogs.length) < total : nextLogs.length === 15);
+      }
+    } catch (err) {
+      console.error('Error loading more notification logs:', err);
+    } finally {
+      setLoadingMoreProLogs(false);
+    }
+  };
+
+  const handleTriggerReminders = async () => {
+    setTriggeringReminders(true);
+    try {
+      const res = await proApi.triggerAdminReminders();
+      if (res.data?.success) {
+        setNotification(`Deadline protection run completed! ${res.data.data?.processed || 0} reminders processed.`);
+        loadTabData();
+      }
+    } catch (err) {
+      setNotification(err.response?.data?.message || 'Failed to trigger deadline reminders.');
+    } finally {
+      setTriggeringReminders(false);
     }
   };
 
@@ -915,6 +1010,7 @@ export const AdminDashboardPage = () => {
         }}>
           {[
             { key: 'overview', label: 'Platform KPIs & Stats', icon: TrendingUp },
+            { key: 'proClub', label: 'Pro Club & Protection', icon: Sparkles },
             { key: 'applications', label: 'Master Applications', icon: Layers },
             { key: 'recruitments', label: 'Recruitments (CRUD)', icon: Briefcase },
             { key: 'assistance', label: 'Assistance Dispatch', icon: Video },
@@ -1050,6 +1146,348 @@ export const AdminDashboardPage = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: PRO CLUB & PROTECTION */}
+        {activeTab === 'proClub' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Top Toolbar */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-secondary)', fontWeight: 700, fontSize: '0.8rem', marginBottom: '0.25rem' }}>
+                  <Sparkles size={16} /> MAXEVOG PRO CLUB V1 ENGINE
+                </div>
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--color-primary)', margin: 0 }}>
+                  Pro Club Governance & Deadline Protection
+                </h3>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  Quarterly subscriber lifecycle (3 Months), match pipeline, 1 free assistance credit allocation, and multi-channel audit trail.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleTriggerReminders}
+                  disabled={triggeringReminders}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Send size={14} />
+                  <span>{triggeringReminders ? 'Evaluating Windows...' : 'Run Deadline Engine Now'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => loadTabData()}
+                  className="btn btn-outline btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <RefreshCw size={14} />
+                  <span>Refresh Dataset</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Ecosystem KPI Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1rem'
+            }}>
+              <div className="card" style={{ padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  <span>ACTIVE PRO SUBSCRIBERS</span>
+                  <Users size={16} color="var(--color-primary)" />
+                </div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }} className="tabular-nums">
+                  {proStats?.subscribers?.active || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  Total enrolled: {proStats?.subscribers?.total || 0}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  <span>TRACKED OPPORTUNITIES</span>
+                  <Briefcase size={16} color="var(--color-secondary)" />
+                </div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)' }} className="tabular-nums">
+                  {proStats?.trackedJobsCount || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  In candidate personal trackers
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  <span>AUTO-MATCHES GENERATED</span>
+                  <Sparkles size={16} color="#8B5CF6" />
+                </div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#8B5CF6' }} className="tabular-nums">
+                  {proStats?.matchesGeneratedCount || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  Eligible openings identified
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  <span>FREE ASSISTANCE CREDITS</span>
+                  <Video size={16} color="var(--color-accent)" />
+                </div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-accent)' }} className="tabular-nums">
+                  {proStats?.subscribers?.totalCreditsUsed || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  Credits used ({proStats?.subscribers?.totalCreditsRemaining || 0} available)
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  <span>NOTIFICATIONS SENT</span>
+                  <Bell size={16} color="#EC4899" />
+                </div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#EC4899' }} className="tabular-nums">
+                  {proStats?.notifications?.sent || 0}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: proStats?.notifications?.failed > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)', marginTop: '0.2rem' }}>
+                  {proStats?.notifications?.failed || 0} failed attempts
+                </div>
+              </div>
+            </div>
+
+            {/* Section 1: Active Subscribers */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '1.1rem', color: 'var(--color-primary)', margin: 0 }}>
+                    Pro Club Members (Quarterly Passes)
+                  </h4>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                    Active 3-month subscriptions with 1 free assistance credit status.
+                  </div>
+                </div>
+                <span className="badge badge-primary" style={{ fontWeight: 700 }}>
+                  {proSubscribers.length} Members Loaded
+                </span>
+              </div>
+
+              {proSubscribers.length === 0 ? (
+                <p style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--color-text-muted)' }}>
+                  No Pro Club subscribers found in this view.
+                </p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Candidate</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Plan Tier</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Active Period</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Free 1-on-1 Credit</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {proSubscribers.map((sub) => {
+                        const hasCreditAvailable = (sub.assistanceCreditsTotal || 1) > (sub.assistanceCreditsUsed || 0);
+                        const isExpired = sub.status === 'EXPIRED' || (sub.endDate && new Date(sub.endDate) < new Date());
+                        return (
+                          <tr key={sub.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                            <td style={{ padding: '0.75rem 0.5rem' }}>
+                              <div style={{ fontWeight: 600, color: 'var(--color-text-title)' }}>
+                                {sub.user?.profile?.fullName || 'Pro Candidate'}
+                              </div>
+                              <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)' }}>
+                                {sub.user?.email} {sub.user?.profile?.mobileNumber ? `• ${sub.user.profile.mobileNumber}` : ''}
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>
+                              <span style={{ color: 'var(--color-secondary)' }}>Quarterly Pass</span>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>3 Months Protection</div>
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem', color: 'var(--color-text-body)', whiteSpace: 'nowrap' }}>
+                              <div style={{ fontSize: '0.82rem' }}>
+                                Started: {sub.startDate ? new Date(sub.startDate).toLocaleDateString('en-IN') : '—'}
+                              </div>
+                              <div style={{ fontSize: '0.76rem', color: isExpired ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                                Valid till: {sub.endDate ? new Date(sub.endDate).toLocaleDateString('en-IN') : '—'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem' }}>
+                              {hasCreditAvailable ? (
+                                <span className="badge" style={{ backgroundColor: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC', fontWeight: 700 }}>
+                                  1 Credit Ready (₹69 Waived)
+                                </span>
+                              ) : (
+                                <span className="badge" style={{ backgroundColor: '#F3F4F6', color: '#6B7280', border: '1px solid #E5E7EB' }}>
+                                  Credit Consumed
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.75rem 0.5rem' }}>
+                              <span
+                                className="badge"
+                                style={{
+                                  backgroundColor: isExpired ? '#FEE2E2' : '#EDE9FE',
+                                  color: isExpired ? '#DC2626' : '#6D28D9',
+                                  border: `1px solid ${isExpired ? '#FCA5A5' : '#C4B5FD'}`,
+                                  fontWeight: 700
+                                }}
+                              >
+                                {isExpired ? 'EXPIRED' : (sub.status || 'ACTIVE')}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {hasMoreProSubscribers && (
+                <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleLoadMoreProSubscribers}
+                    disabled={loadingMoreProSubscribers}
+                    className="btn btn-outline btn-sm"
+                  >
+                    {loadingMoreProSubscribers ? 'Loading...' : 'Load More Subscribers'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Section 2: Multi-Channel Notification Audit Trail */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '1.1rem', color: 'var(--color-primary)', margin: 0 }}>
+                    Deadline Protection & Matching Dispatch Log
+                  </h4>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                    Idempotent record of automated D-7, D-3, D-1, D-0 deadline alerts and new recruitment notifications.
+                  </div>
+                </div>
+                <span className="badge badge-official" style={{ fontWeight: 700 }}>
+                  {proLogs.length} Delivery Records
+                </span>
+              </div>
+
+              {proLogs.length === 0 ? (
+                <p style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--color-text-muted)' }}>
+                  No notification logs recorded yet. Reminders run automatically or via "Run Deadline Engine Now".
+                </p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Timestamp</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Notification Event</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Channel</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Candidate / Recipient</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Target Recruitment</th>
+                        <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {proLogs.map((log) => (
+                        <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                          <td style={{ padding: '0.75rem 0.5rem', whiteSpace: 'nowrap', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                            {new Date(log.createdAt).toLocaleString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                fontFamily: 'monospace',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                backgroundColor: log.notificationType?.includes('D0') || log.notificationType?.includes('D1') ? '#FEE2E2' : '#EFF6FF',
+                                color: log.notificationType?.includes('D0') || log.notificationType?.includes('D1') ? '#DC2626' : '#1D4ED8',
+                                border: `1px solid ${log.notificationType?.includes('D0') || log.notificationType?.includes('D1') ? '#FCA5A5' : '#BFDBFE'}`
+                              }}
+                            >
+                              {log.notificationType}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                backgroundColor: log.channel === 'TELEGRAM' ? '#E0F2FE' : log.channel === 'EMAIL' ? '#FEF3C7' : '#F3F4F6',
+                                color: log.channel === 'TELEGRAM' ? '#0369A1' : log.channel === 'EMAIL' ? '#B45309' : '#374151',
+                                border: `1px solid ${log.channel === 'TELEGRAM' ? '#7DD3FC' : log.channel === 'EMAIL' ? '#FCD34D' : '#E5E7EB'}`
+                              }}
+                            >
+                              {log.channel}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--color-text-title)' }}>
+                              {log.user?.profile?.fullName || log.user?.email || 'Candidate'}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                              {log.recipient || log.user?.email}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>
+                            <div style={{ fontWeight: 600, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {log.job?.title || 'General Account Event'}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                              {log.job?.organization || '—'}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.75rem 0.5rem' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                backgroundColor: log.status === 'SENT' ? '#DCFCE7' : log.status === 'SIMULATED' ? '#EDE9FE' : '#FEE2E2',
+                                color: log.status === 'SENT' ? '#15803D' : log.status === 'SIMULATED' ? '#6D28D9' : '#DC2626',
+                                border: `1px solid ${log.status === 'SENT' ? '#86EFAC' : log.status === 'SIMULATED' ? '#C4B5FD' : '#FCA5A5'}`
+                              }}
+                            >
+                              {log.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {hasMoreProLogs && (
+                <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleLoadMoreProLogs}
+                    disabled={loadingMoreProLogs}
+                    className="btn btn-outline btn-sm"
+                  >
+                    {loadingMoreProLogs ? 'Loading...' : 'Load More Logs'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

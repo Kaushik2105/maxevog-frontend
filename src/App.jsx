@@ -14,6 +14,7 @@ import { AdmitCardsPage } from './pages/AdmitCardsPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { MembershipPage } from './pages/MembershipPage';
+import { ProDashboardPage } from './pages/ProDashboardPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -53,6 +54,14 @@ export const App = () => {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pro"
+            element={
+              <ProtectedRoute>
+                <ProDashboardPage />
               </ProtectedRoute>
             }
           />

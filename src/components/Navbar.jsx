@@ -177,7 +177,7 @@ export const Navbar = () => {
 
           {!(isAgent || isAdmin) && (
             <Link
-              to="/membership"
+              to={isPro ? "/pro" : "/membership"}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -185,13 +185,38 @@ export const Navbar = () => {
                 padding: '0.5rem 0.85rem',
                 borderRadius: 'var(--radius-md)',
                 fontSize: '0.88rem',
-                fontWeight: isActive('/membership') ? 700 : 500,
-                color: isActive('/membership') ? 'var(--color-secondary)' : 'var(--color-text-body)',
-                backgroundColor: isActive('/membership') ? 'var(--color-secondary-subtle)' : 'transparent',
+                fontWeight: (isActive('/membership') || isActive('/pro')) ? 700 : 500,
+                color: (isActive('/membership') || isActive('/pro')) ? 'var(--color-secondary)' : 'var(--color-text-body)',
+                backgroundColor: (isActive('/membership') || isActive('/pro')) ? 'var(--color-secondary-subtle)' : 'transparent',
               }}
             >
-              <Sparkles size={16} color={isActive('/membership') ? 'var(--color-secondary)' : '#F59E0B'} />
-              <span>Pro Club</span>
+              <Sparkles size={16} color={(isActive('/membership') || isActive('/pro')) ? 'var(--color-secondary)' : '#F59E0B'} />
+              <span>{isPro ? 'Pro Dashboard' : 'Pro Club'}</span>
+              {isPro ? (
+                <span style={{
+                  backgroundColor: '#FEF3C7',
+                  color: '#B45309',
+                  border: '1px solid #FCD34D',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  padding: '0.08rem 0.35rem',
+                  borderRadius: 'var(--radius-full)'
+                }}>
+                  ACTIVE
+                </span>
+              ) : (
+                <span style={{
+                  backgroundColor: 'var(--color-secondary-subtle)',
+                  color: 'var(--color-secondary)',
+                  border: '1px solid var(--color-secondary-border)',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '0.08rem 0.35rem',
+                  borderRadius: 'var(--radius-full)'
+                }}>
+                  ₹249
+                </span>
+              )}
             </Link>
           )}
 
@@ -391,7 +416,7 @@ export const Navbar = () => {
           )}
           {!(isAgent || isAdmin) && (
             <Link
-              to="/membership"
+              to={isPro ? "/pro" : "/membership"}
               onClick={() => setMobileMenuOpen(false)}
               style={{
                 display: 'flex',
@@ -404,7 +429,7 @@ export const Navbar = () => {
               }}
             >
               <Sparkles size={18} color="var(--color-secondary)" />
-              <span>Pro Club (₹249 / 3 Mo)</span>
+              <span>{isPro ? 'Pro Dashboard (Active)' : 'Pro Club (₹249 / 3 Mo)'}</span>
             </Link>
           )}
           {(isAgent || isAdmin) && (
